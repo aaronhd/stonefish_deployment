@@ -6,7 +6,6 @@
  */
 
 #include <cola2_lib_ros/diagnostic_helper.h>
-#include <cola2_lib_ros/navigation_helper.h>
 #include <cola2_lib_ros/param_loader.h>
 #include <cola2_lib_ros/serviceclient_helper.h>
 #include <cola2_lib_ros/this_node.h>
@@ -15,12 +14,11 @@
 #include <cola2_msgs/NavSts.h>
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
-
 #include <string>
 
 class SafeDepthAltitude
 {
-protected:
+ protected:
   ros::NodeHandle nh_;
   ros::Publisher pub_bvr_;
   ros::Subscriber sub_nav_;
@@ -28,7 +26,7 @@ protected:
   ros::Timer diagnostics_timer_;
   const std::string ns_;
   cola2::ros::DiagnosticHelper diagnostic_;
-  double max_depth_, min_altitude_, min_altitude_starts_at_depth_;
+  double max_depth_, min_altitude_;
   bool no_altitude_goes_up_;
   double last_nav_received_;
   double initial_time_;
@@ -41,7 +39,7 @@ protected:
   bool reloadParamsCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response&);
   bool getConfig();
 
-public:
+ public:
   SafeDepthAltitude();
 };
 
@@ -51,12 +49,11 @@ SafeDepthAltitude::SafeDepthAltitude()
   , diagnostic_(nh_, "safe_depth_altitude", cola2::ros::getUnresolvedNodeName())
   , max_depth_(0.0)
   , min_altitude_(10000.0)
-  , min_altitude_starts_at_depth_(0.5)
   , no_altitude_goes_up_(true)
   , last_nav_received_(0.0)
 {
   // Wait for time and initialize variables
-  while ((ros::Time::now().toSec() == 0.0) && (!ros::isShuttingDown()))
+  while (ros::Time::now().toSec() == 0.0)
   {
     ros::spinOnce();
     ROS_INFO_THROTTLE(1.0, "Waiting for valid time source");
@@ -66,24 +63,19 @@ SafeDepthAltitude::SafeDepthAltitude()
   getConfig();
   pub_bvr_ = nh_.advertise<cola2_msgs::BodyVelocityReq>(ns_ + "/controller/body_velocity_req", 1, true);
   sub_nav_ = nh_.subscribe(ns_ + "/navigator/navigation", 10, &SafeDepthAltitude::navCallback, this);
-  srv_enable_no_altitude_goes_up_ =
-      nh_.advertiseService("enable_no_altitude_goes_up", &SafeDepthAltitude::enableNoAltitudeGoesUpCallback, this);
-  srv_disable_no_altitude_goes_up_ =
-      nh_.advertiseService("disable_no_altitude_goes_up", &SafeDepthAltitude::disableNoAltitudeGoesUpCallback, this);
+  srv_enable_no_altitude_goes_up_ = nh_.advertiseService("enable_no_altitude_goes_up",
+                                                         &SafeDepthAltitude::enableNoAltitudeGoesUpCallback, this);
+  srv_disable_no_altitude_goes_up_ = nh_.advertiseService("disable_no_altitude_goes_up",
+                                                          &SafeDepthAltitude::disableNoAltitudeGoesUpCallback, this);
   srv_reload_params_ = nh_.advertiseService("reload_params", &SafeDepthAltitude::reloadParamsCallback, this);
   diagnostics_timer_ = nh_.createTimer(ros::Duration(0.5), &SafeDepthAltitude::diagnosticsTimer, this);
   diagnostic_.setEnabled(true);
   ROS_INFO("Initialized");
 }
 
-void SafeDepthAltitude::navCallback(const cola2_msgs::NavSts& nav)
+void
+SafeDepthAltitude::navCallback(const cola2_msgs::NavSts& nav)
 {
-  // Check for valid navigation
-  if (!cola2::ros::navigationIsValid(nav))
-  {
-    return;
-  }
-
   diagnostic_.addKeyValue("altitude", nav.altitude);
   diagnostic_.addKeyValue("depth", nav.position.depth);
 
@@ -101,16 +93,16 @@ void SafeDepthAltitude::navCallback(const cola2_msgs::NavSts& nav)
       invalid = true;
     }
   }
-  if ((nav.altitude > 0.0) && (nav.altitude < min_altitude_) && (nav.position.depth > min_altitude_starts_at_depth_))
+  if ((nav.altitude > 0.0) && (nav.altitude < min_altitude_) && (nav.position.depth > 0.5))
   {
-    ROS_WARN_STREAM_THROTTLE(1,
-                             "Invalid altitude (" << nav.altitude << " less than " << min_altitude_ << "). Going up!");
+    ROS_WARN_STREAM_THROTTLE(1, "Invalid altitude (" << nav.altitude << " less than " << min_altitude_ <<
+                             "). Going up!");
     invalid = true;
   }
   if (nav.position.depth > max_depth_)
   {
-    ROS_WARN_STREAM_THROTTLE(1, "Invalid depth (" << nav.position.depth << " greater than " << max_depth_
-                                                  << "). Going up!");
+    ROS_WARN_STREAM_THROTTLE(1, "Invalid depth (" << nav.position.depth << " greater than " << max_depth_ <<
+                             "). Going up!");
     invalid = true;
   }
 
@@ -152,7 +144,8 @@ void SafeDepthAltitude::navCallback(const cola2_msgs::NavSts& nav)
   last_nav_received_ = nav.header.stamp.toSec();
 }
 
-void SafeDepthAltitude::diagnosticsTimer(const ros::TimerEvent& event)
+void
+SafeDepthAltitude::diagnosticsTimer(const ros::TimerEvent& event)
 {
   if (event.current_real.toSec() - last_nav_received_ > 3.0)
   {
@@ -164,7 +157,8 @@ void SafeDepthAltitude::diagnosticsTimer(const ros::TimerEvent& event)
   }
 }
 
-bool SafeDepthAltitude::enableNoAltitudeGoesUpCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
+bool
+SafeDepthAltitude::enableNoAltitudeGoesUpCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
 {
   ROS_INFO("No altitude goes up reactive behavior enabled");
   no_altitude_goes_up_ = true;
@@ -173,7 +167,8 @@ bool SafeDepthAltitude::enableNoAltitudeGoesUpCallback(std_srvs::Trigger::Reques
   return true;
 }
 
-bool SafeDepthAltitude::disableNoAltitudeGoesUpCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
+bool
+SafeDepthAltitude::disableNoAltitudeGoesUpCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
 {
   ROS_INFO("No altitude goes up reactive behavior disabled");
   no_altitude_goes_up_ = false;
@@ -182,7 +177,8 @@ bool SafeDepthAltitude::disableNoAltitudeGoesUpCallback(std_srvs::Trigger::Reque
   return true;
 }
 
-bool SafeDepthAltitude::reloadParamsCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
+bool
+SafeDepthAltitude::reloadParamsCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
 {
   ROS_INFO("Reload params service called");
 
@@ -225,14 +221,14 @@ bool SafeDepthAltitude::reloadParamsCallback(std_srvs::Trigger::Request&, std_sr
   return true;
 }
 
-bool SafeDepthAltitude::getConfig()
+bool
+SafeDepthAltitude::getConfig()
 {
   // Load configuration
-  double temp_max_depth, temp_min_altitude, temp_min_altitude_starts_at_depth;
+  double temp_max_depth, temp_min_altitude;
   bool ok = true;
   ok &= cola2::ros::getParam("~max_depth", temp_max_depth);
   ok &= cola2::ros::getParam("~min_altitude", temp_min_altitude);
-  ok &= cola2::ros::getParam("~min_altitude_starts_at_depth", temp_min_altitude_starts_at_depth);
 
   // Check if valid
   if (!ok)
@@ -244,7 +240,6 @@ bool SafeDepthAltitude::getConfig()
   // Apply changes
   max_depth_ = temp_max_depth;
   min_altitude_ = temp_min_altitude;
-  min_altitude_starts_at_depth_ = temp_min_altitude_starts_at_depth;
 
   return true;
 }

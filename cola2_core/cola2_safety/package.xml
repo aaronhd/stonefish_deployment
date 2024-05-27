@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>cola2_safety</name>
-  <version>24.1.4</version>
+  <version>20.10.10</version>
   <description>The cola2_safety package</description>
   <maintainer email="software@iquarobotics.com">Iqua Robotics</maintainer>
   <license>Iqua Robotics</license>
@@ -18,9 +18,6 @@
   <!-- COLA2 Dependencies -->
   <depend>cola2_lib_ros</depend>
   <depend>cola2_msgs</depend>
-
-  <!-- System Dependencies -->
-  <depend>lcov</depend>
 
   <export>
     <rosdoc config="rosdoc.yaml" />

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(cola2_safety)
 
-add_compile_options(-std=c++17 -Wall -Wextra)
+add_compile_options(-std=c++11 -Wall -Wextra)
 
 find_package(catkin REQUIRED COMPONENTS
   # ROS Dependencies
@@ -102,7 +102,7 @@ if(CATKIN_ENABLE_TESTING)
   endif()
 
   # Set new flags for coverage and testing
-  add_compile_options(-std=c++17 -g -O0 --coverage -fprofile-arcs -ftest-coverage -fno-inline -fno-elide-constructors -Wall -Wextra -Wunused -Wswitch-default -Wdiv-by-zero -Wmissing-braces -Wunused-result -Warray-bounds -Wbool-compare -Wbool-operation -Wdangling-else)
+  add_compile_options(-std=c++11 -g -O0 --coverage -fprofile-arcs -ftest-coverage -fno-inline -Wall -Wextra -Wunused -Wswitch-default -Wdiv-by-zero -Wmissing-braces -Wunused-result -Warray-bounds -Wbool-compare -Wbool-operation -Wdangling-else)
 
   # Create target to perform cleanup
   add_custom_target(${PROJECT_NAME}_coverage_cleanup)

@@ -6,7 +6,6 @@
  */
 
 #include <cola2_lib_ros/diagnostic_helper.h>
-#include <cola2_lib_ros/navigation_helper.h>
 #include <cola2_lib_ros/param_loader.h>
 #include <cola2_lib_ros/serviceclient_helper.h>
 #include <cola2_lib_ros/this_node.h>
@@ -15,14 +14,13 @@
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
 #include <visualization_msgs/Marker.h>
-
 #include <cmath>
 #include <exception>
 #include <string>
 
 class VirtualCage
 {
-protected:
+ protected:
   ros::NodeHandle nh_;
   ros::Publisher pub_marker_;
   ros::Subscriber sub_nav_;
@@ -40,7 +38,7 @@ protected:
   void mainTimerCallback(const ros::TimerEvent&);
   bool getConfig();
 
-public:
+ public:
   VirtualCage();
 };
 
@@ -71,20 +69,16 @@ VirtualCage::VirtualCage()
   ROS_INFO("Initialized");
 }
 
-void VirtualCage::navCallback(const cola2_msgs::NavSts& nav)
+void
+VirtualCage::navCallback(const cola2_msgs::NavSts& nav)
 {
-  // Check for valid navigation
-  if (!cola2::ros::navigationIsValid(nav))
-  {
-    return;
-  }
-
   nav_north_ = nav.position.north;
   nav_east_ = nav.position.east;
   last_nav_ = nav.header.stamp.toSec();
 }
 
-bool VirtualCage::reloadParamsCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
+bool
+VirtualCage::reloadParamsCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
 {
   ROS_INFO("Reload params service called");
 
@@ -127,7 +121,8 @@ bool VirtualCage::reloadParamsCallback(std_srvs::Trigger::Request&, std_srvs::Tr
   return true;
 }
 
-void VirtualCage::mainTimerCallback(const ros::TimerEvent& event)
+void
+VirtualCage::mainTimerCallback(const ros::TimerEvent& event)
 {
   // Update marker
   cage_marker_.header.stamp = event.current_real;
@@ -172,7 +167,8 @@ void VirtualCage::mainTimerCallback(const ros::TimerEvent& event)
   pub_marker_.publish(cage_marker_);
 }
 
-bool VirtualCage::getConfig()
+bool
+VirtualCage::getConfig()
 {
   // Load configuration
   double temp_cage_center_north, temp_cage_center_east, temp_cage_radius;

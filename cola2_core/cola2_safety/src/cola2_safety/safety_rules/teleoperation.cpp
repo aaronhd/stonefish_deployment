@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Iqua Robotics SL - All Rights Reserved
+ * Copyright (c) 2020 Iqua Robotics SL - All Rights Reserved
  *
  * This file is subject to the terms and conditions defined in file
  * 'LICENSE.txt', which is part of this source code package.
@@ -14,8 +14,8 @@ Teleoperation::Teleoperation(const std::string& rule_name, ros::NodeHandle* nh_p
   : SafetyRuleBaseClass(rule_name)
   , last_ack_(0.0)
   , teleoperation_link_timeout_(0.0)
-  , last_autonomous_(ros::Time::now().toSec())
-  , last_captain_status_(last_autonomous_)
+  , last_autonomous_(0.0)
+  , last_captain_status_(ros::Time::now().toSec())
 {
   loadConfigFromParamServer();
 

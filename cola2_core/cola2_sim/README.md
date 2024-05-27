@@ -16,21 +16,21 @@ This node takes as inputs the thrusters setpoints and simulates the AUV dynamics
 
 **Publishers**:
 
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /dynamics/odometry [[nav_msgs/Odometry](http://docs.ros.org/noetic/api/nav_msgs/html/msg/Odometry.html)]
-* /gazebo/set_model_state [[gazebo_msgs/ModelState](http://docs.ros.org/noetic/api/gazebo_msgs/html/msg/ModelState.html)]
-* /setpoints_selector/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/Setpoints.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /dynamics/odometry [[nav_msgs/Odometry](http://docs.ros.org/melodic/api/nav_msgs/html/msg/Odometry.html)]
+* /gazebo/set_model_state [[gazebo_msgs/ModelState](http://docs.ros.org/melodic/api/gazebo_msgs/html/msg/ModelState.html)]
+* /setpoints_selector/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/Setpoints.html)]
 
 **Subscribers**:
 
-* /controller/merged_body_force_req [[cola2_msgs/BodyForceReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/BodyForceReq.html)]
-* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/Setpoints.html)]
-* /dynamics/current [[geometry_msgs/Vector3Stamped](http://docs.ros.org/noetic/api/geometry_msgs/html/msg/Vector3Stamped.html)]
-* /dynamics/pose_overwrite [[nav_msgs/Odometry](http://docs.ros.org/noetic/api/nav_msgs/html/msg/Odometry.html)]
+* /controller/merged_body_force_req [[cola2_msgs/BodyForceReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/BodyForceReq.html)]
+* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/Setpoints.html)]
+* /dynamics/current [[geometry_msgs/Vector3Stamped](http://docs.ros.org/melodic/api/geometry_msgs/html/msg/Vector3Stamped.html)]
+* /dynamics/pose_overwrite [[nav_msgs/Odometry](http://docs.ros.org/melodic/api/nav_msgs/html/msg/Odometry.html)]
 
 **Services**:
 
-* /dynamics/reload_params [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
+* /dynamics/reload_params [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
 
 **Parameters**:
 
@@ -85,19 +85,19 @@ This node simulates the navigation sensors of an AUV using the output of the dyn
 
 **Publishers**:
 
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /navigator/altitude [[sensor_msgs/Range](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Range.html)]
-* /navigator/dvl [[cola2_msgs/DVL](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/DVL.html)]
-* /navigator/gps [[sensor_msgs/NavSatFix](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/NavSatFix.html)]
-* /navigator/imu [[sensor_msgs/Imu](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Imu.html)]
-* /navigator/pressure [[sensor_msgs/FluidPressure](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/FluidPressure.html)]
-* /navigator/sound_velocity [[cola2_msgs/Float32Stamped](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/Float32Stamped.html)]
-* /valeport_sound_velocity/temperature [[sensor_msgs/Temperature](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Temperature.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /navigator/altitude [[sensor_msgs/Range](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Range.html)]
+* /navigator/dvl [[cola2_msgs/DVL](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/DVL.html)]
+* /navigator/gps [[sensor_msgs/NavSatFix](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/NavSatFix.html)]
+* /navigator/imu [[sensor_msgs/Imu](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Imu.html)]
+* /navigator/pressure [[sensor_msgs/FluidPressure](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/FluidPressure.html)]
+* /navigator/sound_velocity [[cola2_msgs/Float32Stamped](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/Float32Stamped.html)]
+* /valeport_sound_velocity/temperature [[sensor_msgs/Temperature](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Temperature.html)]
 
 **Subscribers**:
 
-* /dynamics/altitude [[sensor_msgs/Range](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Range.html)]
-* /dynamics/odometry [[nav_msgs/Odometry](http://docs.ros.org/noetic/api/nav_msgs/html/msg/Odometry.html)]
+* /dynamics/altitude [[sensor_msgs/Range](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Range.html)]
+* /dynamics/odometry [[nav_msgs/Odometry](http://docs.ros.org/melodic/api/nav_msgs/html/msg/Odometry.html)]
 
 **Services**: None
 
@@ -137,16 +137,16 @@ This node simulates the batteries (e.g. decaying battery charge) and different d
 
 **Publishers**:
 
-* /batteries/status [[sensor_msgs/BatteryState](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/BatteryState.html)]
-* /batteries_cylinder/humidity [[sensor_msgs/RelativeHumidity](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/RelativeHumidity.html)]
-* /batteries_cylinder/pressure [[sensor_msgs/FluidPressure](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/FluidPressure.html)]
-* /batteries_cylinder/temperature [[sensor_msgs/Temperature](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Temperature.html)]
-* /batteries_cylinder/water_detected [[std_msgs/Bool](http://docs.ros.org/noetic/api/std_msgs/html/msg/Bool.html)]
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /pc_cylinder/humidity [[sensor_msgs/RelativeHumidity](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/RelativeHumidity.html)]
-* /pc_cylinder/pressure [[sensor_msgs/FluidPressure](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/FluidPressure.html)]
-* /pc_cylinder/temperature [[sensor_msgs/Temperature](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Temperature.html)]
-* /pc_cylinder/water_detected [[std_msgs/Bool](http://docs.ros.org/noetic/api/std_msgs/html/msg/Bool.html)]
+* /batteries/status [[sensor_msgs/BatteryState](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/BatteryState.html)]
+* /batteries_cylinder/humidity [[sensor_msgs/RelativeHumidity](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/RelativeHumidity.html)]
+* /batteries_cylinder/pressure [[sensor_msgs/FluidPressure](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/FluidPressure.html)]
+* /batteries_cylinder/temperature [[sensor_msgs/Temperature](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Temperature.html)]
+* /batteries_cylinder/water_detected [[std_msgs/Bool](http://docs.ros.org/melodic/api/std_msgs/html/msg/Bool.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /pc_cylinder/humidity [[sensor_msgs/RelativeHumidity](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/RelativeHumidity.html)]
+* /pc_cylinder/pressure [[sensor_msgs/FluidPressure](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/FluidPressure.html)]
+* /pc_cylinder/temperature [[sensor_msgs/Temperature](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Temperature.html)]
+* /pc_cylinder/water_detected [[std_msgs/Bool](http://docs.ros.org/melodic/api/std_msgs/html/msg/Bool.html)]
 
 **Subscribers**: None
 

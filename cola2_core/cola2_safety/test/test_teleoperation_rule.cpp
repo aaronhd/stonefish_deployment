@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Iqua Robotics SL - All Rights Reserved
+ * Copyright (c) 2020 Iqua Robotics SL - All Rights Reserved
  *
  * This file is subject to the terms and conditions defined in file
  * 'LICENSE.txt', which is part of this source code package.
@@ -55,35 +55,39 @@ TEST(TESTSuite, test)
   // From now on, with proper config
   double timeout = SafetyRules::Teleoperation::INIT_TIME + 10.0;
   ros::param::set("~teleoperation/teleoperation_link_timeout", timeout);
-  if (!teleoperation.loadConfigFromParamServer())
-  {
-    error_codes += "03 ";
-  }
+  teleoperation.loadConfigFromParamServer();
 
   // Simulate no diagnostics at the beginning
   teleoperation.periodicUpdate(ros::Time::now(), &status_code);
   if (teleoperation.getLevel() != SafetyRules::SafetyLevel::INFORMATIVE)
-    error_codes += "04 ";
+    error_codes += "03 ";
 
   // Simulate no diagnostics after some time at the beginning
   teleoperation.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Teleoperation::INIT_TIME + 1.0), &status_code);
   if (teleoperation.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
-    error_codes += "05 ";
+    error_codes += "04 ";
 
   // Simulate running fine
   teleoperation.diagnosticsUpdate(diagnostic_array);
   teleoperation.periodicUpdate(ros::Time::now(), &status_code);
   if (teleoperation.getLevel() != SafetyRules::SafetyLevel::NONE)
-    error_codes += "06 ";
+    error_codes += "05 ";
 
   // Simulate no diagnostics
   teleoperation.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Teleoperation::NO_DIAGNOSTICS_TIME + 1.0), &status_code);
   if (teleoperation.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
-    error_codes += "07 ";
+    error_codes += "06 ";
 
   // Simulate no diagnostics after some time
   teleoperation.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Teleoperation::NO_DIAGNOSTICS_ESCALATED_TIME + 1.0), &status_code);
   if (teleoperation.getLevel() != SafetyRules::SafetyLevel::EMERGENCY_SURFACE)
+    error_codes += "07 ";
+
+  // Simulate teleoperation timeout
+  diagnostic_array.status[0].values[1].value = std::to_string(timeout + 1.0);
+  teleoperation.diagnosticsUpdate(diagnostic_array);
+  teleoperation.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Teleoperation::INIT_TIME + 1.0), &status_code);
+  if (teleoperation.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
     error_codes += "08 ";
 
   // Simulate captain status not being published
@@ -94,34 +98,16 @@ TEST(TESTSuite, test)
   if (teleoperation.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
     error_codes += "09 ";
 
-  // Simulate teleoperation timeout
-  cola2_msgs::CaptainStatus captain_status;
-  captain_status.header.stamp = ros::Time::now();
-  captain_status.state = cola2_msgs::CaptainStatus::GOTO;
-  pub.publish(captain_status);
-  for (double now = ros::Time::now().toSec(); ros::Time::now().toSec() - now < 0.5;)
-    ros::spinOnce();
-  captain_status.header.stamp = ros::Time::now() + ros::Duration(timeout + 1.0);
-  captain_status.state = cola2_msgs::CaptainStatus::IDLE;
-  pub.publish(captain_status);
-  for (double now = ros::Time::now().toSec(); ros::Time::now().toSec() - now < 0.5;)
-    ros::spinOnce();
-  diagnostic_array.status[0].values[1].value = std::to_string(timeout + 1.0);
-  diagnostic_array.header.stamp = ros::Time::now() + ros::Duration(timeout + 1.0);
-  teleoperation.diagnosticsUpdate(diagnostic_array);
-  teleoperation.periodicUpdate(ros::Time::now() + ros::Duration(timeout + 1.0), &status_code);
-  if (teleoperation.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
-    error_codes += "10 ";
-
   // Simulate teleoperation timeout in autonomous mode
+  cola2_msgs::CaptainStatus captain_status;
   captain_status.header.stamp = ros::Time::now() + ros::Duration(SafetyRules::Teleoperation::NO_DIAGNOSTICS_TIME + 1.0);
   captain_status.state = cola2_msgs::CaptainStatus::GOTO;
   pub.publish(captain_status);
   for (double now = ros::Time::now().toSec(); ros::Time::now().toSec() - now < 0.5;)
     ros::spinOnce();
-  teleoperation.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Teleoperation::INIT_TIME + 1.0), &status_code);
+  teleoperation.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Teleoperation::NO_DIAGNOSTICS_TIME + 1.0), &status_code);
   if (teleoperation.getLevel() != SafetyRules::SafetyLevel::NONE)
-    error_codes += "11 ";
+    error_codes += "10 ";
 
   // Use heap also so that both of the virtual destructor entries in the vtable are used
   SafetyRules::Teleoperation* base_class_ptr = new SafetyRules::Teleoperation("teleoperation", &nh);

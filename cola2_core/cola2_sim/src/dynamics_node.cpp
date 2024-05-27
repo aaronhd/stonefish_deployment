@@ -76,7 +76,7 @@ void getParamMatrixXd(const std::string& tname, Eigen::MatrixXd& v, std::size_t 
   cola2::ros::getParam(tname, vec);
   assert(!vec.empty());
   assert(vec.size() % rows == 0);
-  const std::size_t cols = vec.size() / rows;
+  std::size_t cols = vec.size() / rows;
   v = Eigen::MatrixXd::Zero(rows, cols);
   for (std::size_t i = 0; i < rows; ++i)
   {
@@ -96,10 +96,10 @@ Eigen::Matrix3d crossMatrix(const Eigen::Vector3d& x)
 }
 
 // Bisection Poly solver. The polynomial must be monotonic between x1 and x2
-double bisectionPolySolver(Poly& poly, double x1, double x2, const double ytarget)
+double bisectionPolySolver(Poly& poly, double x1, double x2, double ytarget)
 {
-  const double y1 = poly.compute(0.0, x1, 0.0);  // Poly::compute is not const...
-  const double y2 = poly.compute(0.0, x2, 0.0);
+  double y1 = poly.compute(0.0, x1, 0.0);
+  double y2 = poly.compute(0.0, x2, 0.0);
   if (y2 < y1)
   {
     std::swap(x1, x2);
@@ -109,7 +109,7 @@ double bisectionPolySolver(Poly& poly, double x1, double x2, const double ytarge
   for (std::size_t i = 0; i < 30; ++i)
   {
     xm = 0.5 * (x1 + x2);
-    const double ym = poly.compute(0.0, xm, 0.0);
+    double ym = poly.compute(0.0, xm, 0.0);
     if (ym < ytarget)
     {
       x1 = xm;
@@ -122,12 +122,12 @@ double bisectionPolySolver(Poly& poly, double x1, double x2, const double ytarge
   return xm;
 }
 
-/**
- * @brief Simulates the dynamics of an AUV from thrusters setpoint and fins angles.
- */
+/*!
+   \brief Simulates the dynamics of an AUV from thrusters setpoint and fins angles
+*/
 class Dynamics
 {
-protected:
+private:
   // ROS variables
   ros::NodeHandle nh_;
   ros::Publisher pub_odom_, pub_odom_gazebo_;
@@ -222,9 +222,9 @@ public:
   double getRate() const;
 };
 
-/**
- * @brief Dynamics constructor. Loads config, calls initialization method and creates the ROS interface.
- */
+/*!
+   \brief Dynamics constructor. Loads config, calls initialization method and creates the ROS interface
+*/
 Dynamics::Dynamics() : nh_("~"), thrusters_diag_(nh_, "thrusters", cola2::ros::getUnresolvedNodeName()), setpoints_selector_(nh_)
 {
   // Load parameters
@@ -288,9 +288,9 @@ Dynamics::Dynamics() : nh_("~"), thrusters_diag_(nh_, "thrusters", cola2::ros::g
   ROS_INFO_STREAM("Initialized");
 }
 
-/**
- * @brief Initialize mass matrix.
- */
+/*!
+   \brief Initialize mass matrix
+*/
 void Dynamics::initializeMassMatrix()
 {
   // Mass and inertia matrix of the rigid body when computed from the center of gravity
@@ -319,9 +319,9 @@ void Dynamics::initializeMassMatrix()
   IM_ = M_.inverse();
 }
 
-/**
- * @brief Thruster callback, input in range [-1, 1].
- */
+/*!
+   \brief Thruster callback, input in range [-1, 1]
+*/
 void Dynamics::thrustersCallback(const cola2_msgs::Setpoints& msg)
 {
   // Check thruster setpoints size
@@ -372,9 +372,9 @@ void Dynamics::thrustersCallback(const cola2_msgs::Setpoints& msg)
   thrusters_diag_.reportValidData();
 }
 
-/**
- * @brief Fins callback, input in range [-max_angle, max_angle].
- */
+/*!
+   \brief Fins callback, input in range [-max_angle, max_angle]
+*/
 void Dynamics::finsCallback(const cola2_msgs::Setpoints& msg)
 {
   if (msg.setpoints.size() != 2)
@@ -389,17 +389,17 @@ void Dynamics::finsCallback(const cola2_msgs::Setpoints& msg)
   last_fins_setpoint_sec_ = ros::Time::now().toSec();
 }
 
-/**
- * @brief Force callback.
- */
+/*!
+   \brief Force callback
+*/
 void Dynamics::forceCallback(const cola2_msgs::BodyForceReq& msg)
 {
   force_ = msg;
 }
 
-/**
- * @brief Current callback.
- */
+/*!
+   \brief Current callback
+*/
 void Dynamics::currentCallback(const geometry_msgs::Vector3Stamped& msg)
 {
   current_(0) = msg.vector.x;
@@ -407,10 +407,10 @@ void Dynamics::currentCallback(const geometry_msgs::Vector3Stamped& msg)
   current_(2) = msg.vector.z;
 }
 
-/**
- * @brief Pose overwrite callback. It is useful when the dynamics node is used to simulate the DVL to avoid divergence
- * in the robot position over time.
- */
+/*!
+   \brief Pose overwrite callback. It is useful when the dynamics node is used to simulate the DVL to avoid divergence
+          in the robot position over time
+*/
 void Dynamics::poseOverwriteCallback(const nav_msgs::Odometry& msg)
 {
   p_(0) = msg.pose.pose.position.x;
@@ -421,12 +421,12 @@ void Dynamics::poseOverwriteCallback(const nav_msgs::Odometry& msg)
   tf::Matrix3x3(quat).getRPY(p_(3), p_(4), p_(5));
 }
 
-/**
- * @brief Timer to check continuity of thrusters and fins setpoints.
- */
-void Dynamics::checkActuatorsCallback(const ros::TimerEvent& event)
+/*!
+   \brief Timer to check continuity of thrusters and fins setpoints
+*/
+void Dynamics::checkActuatorsCallback(const ros::TimerEvent&)
 {
-  const double now = event.current_real.toSec();
+  double now = ros::Time::now().toSec();
   if (std::fabs(now - last_thrusters_setpoint_sec_) > 1.0)
   {
     u_ = Eigen::VectorXd::Zero(config_.thrusters_num);
@@ -437,9 +437,9 @@ void Dynamics::checkActuatorsCallback(const ros::TimerEvent& event)
   }
 }
 
-/**
- * @brief Service callback to reload configuration.
- */
+/*!
+   \brief Service callback to reload configuration
+*/
 bool Dynamics::reloadConfigServiceCallback(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
 {
   getVariableConfig();
@@ -457,9 +457,9 @@ bool Dynamics::reloadConfigServiceCallback(std_srvs::Trigger::Request&, std_srvs
   return true;
 }
 
-/**
- * @brief Thruster force in robot frame.
- */
+/*!
+   \brief Thruster force in robot frame
+*/
 Eigen::Vector6d Dynamics::computeThrustersForce(const Eigen::VectorXd& u)
 {
   Eigen::VectorXd thruster_forces(config_.thrusters_num);
@@ -479,9 +479,9 @@ Eigen::Vector6d Dynamics::computeThrustersForce(const Eigen::VectorXd& u)
   return config_.thrusters_matrix * thruster_forces;
 }
 
-/**
- * @brief Fins force from velocity and fins orientation.
- */
+/*!
+   \brief Fins force from velocity and fins orientation
+*/
 Eigen::Vector6d Dynamics::computeFinsForce(const Eigen::Vector2d& fins, const Eigen::Vector6d& vel)
 {
   Eigen::Vector6d f = Eigen::Vector6d::Zero();
@@ -491,7 +491,7 @@ Eigen::Vector6d Dynamics::computeFinsForce(const Eigen::Vector2d& fins, const Ei
     double water_vel = vel(0);
     if (water_vel > 0)
     {
-      water_vel = std::sqrt(std::pow(vel(0), 2) + (25.0 * vel(0) / (config_.water_density * M_PI * 0.049 * 0.049)));
+      water_vel = std::sqrt(std::pow(vel(0), 2) + (25.0 * vel(0) / (config_.water_density * 3.141592 * 0.049 * 0.049)));
     }
 
     // Compute force using new fins model (February of 2015). fins[0] -> left fin, fins[1] -> right fin
@@ -509,17 +509,17 @@ Eigen::Vector6d Dynamics::computeFinsForce(const Eigen::Vector2d& fins, const Ei
   return f;
 }
 
-/**
- * @brief Gravity and weight matrix.
- */
+/*!
+   \brief Gravity and weight matrix
+*/
 Eigen::Vector6d Dynamics::gravityAndBuoyancyForce(const Eigen::Vector6d& pos)
 {
   // Weight and buoyancy from [Kg] to [N]
-  const double W = STD_GRAVITY * config_.mass;
-  const double B = STD_GRAVITY * config_.buoyancy;
+  double W = STD_GRAVITY * config_.mass;
+  double B = STD_GRAVITY * config_.buoyancy;
 
   // If the vehicle moves out of the water the buoyancy decreases
-  const double corr_pos = pos(2) + config_.radius;  // Corrected z position
+  double corr_pos = pos(2) + config_.radius;  // Corrected z position
   double F = 0.0;
   if (corr_pos >= config_.radius)
   {
@@ -527,32 +527,32 @@ Eigen::Vector6d Dynamics::gravityAndBuoyancyForce(const Eigen::Vector6d& pos)
   }
   else if (corr_pos > -config_.radius)
   {
-    const double r2 = std::pow(config_.radius, 2);
-    const double total_area = M_PI * r2;
-    const double c = std::sqrt(r2 - std::pow(corr_pos, 2));
-    const double area_segment = std::atan2(c, corr_pos) * r2;
-    const double area_triangle = corr_pos * c;
-    const double area_outside = area_segment - area_triangle;
+    double r2 = std::pow(config_.radius, 2);
+    double total_area = M_PI * r2;
+    double c = std::sqrt(r2 - std::pow(corr_pos, 2));
+    double area_segment = std::atan2(c, corr_pos) * r2;
+    double area_triangle = corr_pos * c;
+    double area_outside = area_segment - area_triangle;
     F = B * (1.0 - area_outside / total_area);
   }
 
   // Gravity center position in the robot fixed frame (x',y',z') [m]
-  const double cr = std::cos(pos(3));
-  const double sr = std::sin(pos(3));
-  const double cp = std::cos(pos(4));
-  const double sp = std::sin(pos(4));
-  const double xb = config_.buoyancy_center(0);
-  const double yb = config_.buoyancy_center(1);
-  const double zb = config_.buoyancy_center(2);
+  double cr = std::cos(pos(3));
+  double sr = std::sin(pos(3));
+  double cp = std::cos(pos(4));
+  double sp = std::sin(pos(4));
+  double xb = config_.buoyancy_center(0);
+  double yb = config_.buoyancy_center(1);
+  double zb = config_.buoyancy_center(2);
   Eigen::Vector6d g;
   g << (W - F) * sp, -(W - F) * cp * sr, -(W - F) * cp * cr, F * (yb * cp * cr - zb * cp * sr),
       -F * (zb * sp + xb * cp * cr), F * (xb * cp * sr + yb * sp);
   return g;
 }
 
-/**
- * @brief Damping matrix computed from the velocity and damping coefficients.
- */
+/*!
+   \brief Damping matrix computed from the velocity and damping coefficients
+*/
 Eigen::Matrix6d Dynamics::dampingMatrix(const Eigen::Vector6d& vel)
 {
   Eigen::Matrix6d damp = Eigen::Matrix6d::Zero();
@@ -563,13 +563,13 @@ Eigen::Matrix6d Dynamics::dampingMatrix(const Eigen::Vector6d& vel)
   return damp;
 }
 
-/**
- * @brief Coriolis matrix computed from the velocity and mass matrix.
- */
+/*!
+   \brief Coriolis matrix computed from the velocity and mass matrix
+*/
 Eigen::Matrix6d Dynamics::coriolisMatrix(const Eigen::Vector6d& vel)
 {
-  const Eigen::Matrix3d s1 = crossMatrix(M_.block<3, 3>(0, 0) * vel.head(3) + M_.block<3, 3>(0, 3) * vel.tail(3));
-  const Eigen::Matrix3d s2 = crossMatrix(M_.block<3, 3>(3, 0) * vel.head(3) + M_.block<3, 3>(3, 3) * vel.tail(3));
+  Eigen::Matrix3d s1 = crossMatrix(M_.block<3, 3>(0, 0) * vel.head(3) + M_.block<3, 3>(0, 3) * vel.tail(3));
+  Eigen::Matrix3d s2 = crossMatrix(M_.block<3, 3>(3, 0) * vel.head(3) + M_.block<3, 3>(3, 3) * vel.tail(3));
   Eigen::Matrix6d c = Eigen::Matrix6d::Zero();
   c.block<3, 3>(0, 3) = -s1;
   c.block<3, 3>(3, 0) = -s1;
@@ -577,22 +577,22 @@ Eigen::Matrix6d Dynamics::coriolisMatrix(const Eigen::Vector6d& vel)
   return c;
 }
 
-/**
- * @brief Given the velocity and position computes the derivative of the position.
- */
+/*!
+   \brief Given the velocity and position computes the derivative of the position
+*/
 Eigen::Vector6d Dynamics::kinematics(const Eigen::Vector6d& pos, const Eigen::Vector6d& vel)
 {
-  const double cr = std::cos(pos(3));  // Compute cos, sin and tan only once
-  const double sr = std::sin(pos(3));
+  double cr = std::cos(pos(3));  // Compute cos, sin and tan only once
+  double sr = std::sin(pos(3));
   double cp = std::cos(pos(4));
   if (std::fabs(cp) < 1e-5)
   {
     cp = 1e-5;  // Avoid division by zero and infinite tangent below
   }
-  const double sp = std::sin(pos(4));
-  const double tp = sp / cp;
-  const double cy = std::cos(pos(5));
-  const double sy = std::sin(pos(5));
+  double sp = std::sin(pos(4));
+  double tp = sp / cp;
+  double cy = std::cos(pos(5));
+  double sy = std::sin(pos(5));
 
   Eigen::Matrix3d rec;
   rec << cy * cp, -sy * cr + cy * sp * sr, sy * sr + cy * cr * sp, sy * cp, cy * cr + sr * sp * sy,
@@ -607,16 +607,16 @@ Eigen::Vector6d Dynamics::kinematics(const Eigen::Vector6d& pos, const Eigen::Ve
   return p_dot;
 }
 
-/**
- * @brief Given the setpoint for each thruster, the previous velocity and the
- * previous position computes the v_dot.
- */
+/*!
+   \brief Given the setpoint for each thruster, the previous velocity and the
+   previous position computes the v_dot
+*/
 Eigen::Vector6d Dynamics::inverseDynamic(const Eigen::Vector6d& pos, const Eigen::Vector6d& vel,
                                          const Eigen::VectorXd& u, const Eigen::Vector2d& f)
 {
   // Compute current in vehicle frame
   Eigen::Vector6d current = Eigen::Vector6d::Zero();
-  const Eigen::Matrix3d rot = cola2::utils::euler2rotation(pos.tail(3));
+  Eigen::Matrix3d rot = cola2::utils::euler2rotation(pos.tail(3));
   current.head(3) = rot.transpose() * current_;
 
   // Forces from thrusters and fins
@@ -632,35 +632,34 @@ Eigen::Vector6d Dynamics::inverseDynamic(const Eigen::Vector6d& pos, const Eigen
   }
 
   // Gravity force
-  const Eigen::Vector6d g = gravityAndBuoyancyForce(pos);
+  Eigen::Vector6d g = gravityAndBuoyancyForce(pos);
 
   // Damping and Coriolis forces
-  const Eigen::Vector6d cd_v = coriolisMatrix(vel) * vel - dampingMatrix(vel - current) * (vel - current);
+  Eigen::Vector6d cd_v = coriolisMatrix(vel) * vel - dampingMatrix(vel - current) * (vel - current);
 
   return IM_ * (uf - g - cd_v);  // v_dot
 }
 
-/**
- * @brief Main loop operations.
- */
+/*!
+   \brief Main loop operations
+*/
 void Dynamics::iterate()
 {
   // Simulate tau for thrusters input
-  const Eigen::VectorXd u_after_tau =
+  Eigen::VectorXd u_after_tau =
       (config_.period * u_ + config_.thrusters_tau * old_u_) / (config_.period + config_.thrusters_tau);
 
   // Runge-Kutta, fixed 4th order
-  const Eigen::Vector6d k1_pos = kinematics(p_, v_);
-  const Eigen::Vector6d k1_vel = inverseDynamic(p_, v_, old_u_, old_f_);
-  const Eigen::Vector6d k2_pos = kinematics(p_ + config_.period * 0.5 * k1_pos, v_ + config_.period * 0.5 * k1_vel);
-  const Eigen::Vector6d k2_vel = inverseDynamic(p_ + config_.period * 0.5 * k1_pos, v_ + config_.period * 0.5 * k1_vel,
-                                                0.5 * (old_u_ + u_after_tau), 0.5 * (old_f_ + f_));
-  const Eigen::Vector6d k3_pos = kinematics(p_ + config_.period * 0.5 * k2_pos, v_ + config_.period * 0.5 * k2_vel);
-  const Eigen::Vector6d k3_vel = inverseDynamic(p_ + config_.period * 0.5 * k2_pos, v_ + config_.period * 0.5 * k2_vel,
-                                                0.5 * (old_u_ + u_after_tau), 0.5 * (old_f_ + f_));
-  const Eigen::Vector6d k4_pos = kinematics(p_ + config_.period * k3_pos, v_ + config_.period * k3_vel);
-  const Eigen::Vector6d k4_vel = inverseDynamic(p_ + config_.period * k3_pos, v_ + config_.period * k3_vel,
-                                                u_after_tau, f_);
+  Eigen::Vector6d k1_pos = kinematics(p_, v_);
+  Eigen::Vector6d k1_vel = inverseDynamic(p_, v_, old_u_, old_f_);
+  Eigen::Vector6d k2_pos = kinematics(p_ + config_.period * 0.5 * k1_pos, v_ + config_.period * 0.5 * k1_vel);
+  Eigen::Vector6d k2_vel = inverseDynamic(p_ + config_.period * 0.5 * k1_pos, v_ + config_.period * 0.5 * k1_vel,
+                                          0.5 * (old_u_ + u_after_tau), 0.5 * (old_f_ + f_));
+  Eigen::Vector6d k3_pos = kinematics(p_ + config_.period * 0.5 * k2_pos, v_ + config_.period * 0.5 * k2_vel);
+  Eigen::Vector6d k3_vel = inverseDynamic(p_ + config_.period * 0.5 * k2_pos, v_ + config_.period * 0.5 * k2_vel,
+                                          0.5 * (old_u_ + u_after_tau), 0.5 * (old_f_ + f_));
+  Eigen::Vector6d k4_pos = kinematics(p_ + config_.period * k3_pos, v_ + config_.period * k3_vel);
+  Eigen::Vector6d k4_vel = inverseDynamic(p_ + config_.period * k3_pos, v_ + config_.period * k3_vel, u_after_tau, f_);
 
   p_ += config_.period / 6.0 * (k1_pos + 2.0 * k2_pos + 2.0 * k3_pos + k4_pos);
   v_ += config_.period / 6.0 * (k1_vel + 2.0 * k2_vel + 2.0 * k3_vel + k4_vel);
@@ -680,9 +679,9 @@ void Dynamics::iterate()
   thrusters_diag_.publish();
 }
 
-/**
- * @brief Publish odometry, tf and position for Gazebo.
- */
+/*!
+   \brief Publish odometry, tf and position for Gazebo
+*/
 void Dynamics::publishOdometry()
 {
   // Header
@@ -732,9 +731,9 @@ void Dynamics::publishOdometry()
   pub_odom_gazebo_.publish(gazebo_msg);
 }
 
-/**
- * @brief Get static config from param server. This config is read at the beginning only.
- */
+/*!
+   \brief Get static config from param server. This config is read at the beginning only
+*/
 void Dynamics::getStaticConfig()
 {
   // World frame
@@ -759,9 +758,9 @@ void Dynamics::getStaticConfig()
   config_.thrusters_num = static_cast<std::size_t>(thrusters_num);
 }
 
-/**
- * @brief Get variable config from param server. This config can be changed at runtime.
- */
+/*!
+   \brief Get variable config from param server. This config can be changed at runtime
+*/
 void Dynamics::getVariableConfig()
 {
   // Vehicle properties
@@ -836,9 +835,7 @@ void Dynamics::getVariableConfig()
   cola2::ros::getParam("~use_force_topic", config_.use_force_topic, false);
 }
 
-/**
- * @brief Returns the rate. Used in the main while loop that calls iterate().
- */
+// Returns the rate. Used in the main while loop that calls iterate()
 double Dynamics::getRate() const
 {
   return config_.rate;
@@ -855,5 +852,4 @@ int main(int argc, char* argv[])
     rate.sleep();
     ros::spinOnce();
   }
-  return 0;
 }

@@ -8,43 +8,39 @@
 #include <cola2_safety/safety_rules/common.h>
 #include <gtest/gtest.h>
 #include <ros/ros.h>
-
 #include <cstdint>
 #include <string>
 
 class Common : public SafetyRules::SafetyRuleBaseClass
 {
-public:
+ public:
   double a;
   int b;
   bool c;
-  std::string d;
   Common();
   void parseDiagnostics();
   bool checkDataTypeNames();
 };
 
-Common::Common() : SafetyRules::SafetyRuleBaseClass("common_safety_rule"), a(0.0), b(0), c(false)
+Common::Common()
+  : SafetyRules::SafetyRuleBaseClass("common_safety_rule")
+  , a(0.0)
+  , b(0)
+  , c(false)
 {
   message_ = "Test";
 
-  const ParseListWithHwId parse_list({ { "/test", "*", "a", "a", DataType::Double },
-                                       { "/test", "*", "b", "b", DataType::Int },
-                                       { "/test", "*", "c", "c", DataType::Bool },
-                                       { "/test", "wrong_hw_id", "c", "c", DataType::Bool },
-                                       { "/test", "*", "d", "d", DataType::String },
-                                       { "/test", "*", DIAGNOSTIC_STATUS_LEVEL, "level_b", DataType::Bool },
-                                       { "/test", "*", DIAGNOSTIC_STATUS_LEVEL, "level_d", DataType::Double },
-                                       { "/test", "*", DIAGNOSTIC_STATUS_LEVEL, "level_i", DataType::Int },
-                                       { "/test", "*", DIAGNOSTIC_STATUS_LEVEL, "level_s", DataType::String },
-                                       { "/test", "*", DIAGNOSTIC_STATUS_MESSAGE, "message_b", DataType::Bool },
-                                       { "/test", "*", DIAGNOSTIC_STATUS_MESSAGE, "message_d", DataType::Double },
-                                       { "/test", "*", DIAGNOSTIC_STATUS_MESSAGE, "message_i", DataType::Int },
-                                       { "/test", "*", DIAGNOSTIC_STATUS_MESSAGE, "message_s", DataType::String } });
+  const ParseListWithHwId parse_list({
+    {"/test", "*", "a", "a", DataType::Double},
+    {"/test", "*", "b", "b", DataType::Int},
+    {"/test", "*", "c", "c", DataType::Bool},
+    {"/test", "wrong_hw_id", "c", "c", DataType::Bool}
+  });
   setParseListWithHwId(parse_list);
 }
 
-void Common::parseDiagnostics()
+void
+Common::parseDiagnostics()
 {
   if (hasDouble("a"))
     a = getDouble("a");
@@ -52,11 +48,10 @@ void Common::parseDiagnostics()
     b = getInt("b");
   if (hasBool("c"))
     c = getBool("c");
-  if (hasString("d"))
-    d = getString("d");
 }
 
-bool Common::checkDataTypeNames()
+bool
+Common::checkDataTypeNames()
 {
   bool ok = true;
   if (dataTypeToString(DataType::Double).compare("double") != 0)
@@ -64,10 +59,6 @@ bool Common::checkDataTypeNames()
   if (dataTypeToString(DataType::Int).compare("int") != 0)
     ok = false;
   if (dataTypeToString(DataType::Bool).compare("bool") != 0)
-    ok = false;
-  if (dataTypeToString(DataType::String).compare("string") != 0)
-    ok = false;
-  if (dataTypeToString(static_cast<DataType>(100)).compare("unknown") != 0)
     ok = false;
   return ok;
 }
@@ -116,7 +107,7 @@ TEST(TESTSuite, test)
   diagnostic_array.header.stamp = ros::Time::now();
   diagnostic_msgs::DiagnosticStatus diagnostic_status;
   diagnostic_status.level = diagnostic_msgs::DiagnosticStatus::STALE;  // This is wrong on purpose
-  diagnostic_status.name = "/tEsT";                                    // This is wrong on purpose
+  diagnostic_status.name = "/tEsT";  // This is wrong on purpose
   diagnostic_status.message = "test_message";
   diagnostic_status.hardware_id = "test_hardware_id";
   diagnostic_msgs::KeyValue diagnostic_key_value;
@@ -128,9 +119,6 @@ TEST(TESTSuite, test)
   diagnostic_status.values.push_back(diagnostic_key_value);
   diagnostic_key_value.key = "c";
   diagnostic_key_value.value = "tRuE";  // This is wrong on purpose
-  diagnostic_status.values.push_back(diagnostic_key_value);
-  diagnostic_key_value.key = "d";
-  diagnostic_key_value.value = "tEsT";
   diagnostic_status.values.push_back(diagnostic_key_value);
   diagnostic_array.status.push_back(diagnostic_status);
 
@@ -160,50 +148,34 @@ TEST(TESTSuite, test)
   common.diagnosticsUpdate(diagnostic_array);
   if (!common.c)
     error_codes += "17 ";
-  if (common.d != "tEsT")
-    error_codes += "18 ";
 
   // Test other small methods
   if (common.getRuleName().compare("common_safety_rule") != 0)
-    error_codes += "19 ";
+    error_codes += "18 ";
   if (common.getMessage().compare("Test") != 0)
-    error_codes += "20 ";
+    error_codes += "19 ";
   if (!common.checkDataTypeNames())
-    error_codes += "21 ";
+    error_codes += "20 ";
 
   // These get methods should throw
   try
   {
-    common.getDouble("e");
+    common.getDouble("d");
+    error_codes += "21 ";
+  }
+  catch (...) {}
+  try
+  {
+    common.getInt("d");
     error_codes += "22 ";
   }
-  catch (...)
-  {
-  }
+  catch (...) {}
   try
   {
-    common.getInt("e");
+    common.getBool("d");
     error_codes += "23 ";
   }
-  catch (...)
-  {
-  }
-  try
-  {
-    common.getBool("e");
-    error_codes += "24 ";
-  }
-  catch (...)
-  {
-  }
-  try
-  {
-    common.getString("e");
-    error_codes += "25 ";
-  }
-  catch (...)
-  {
-  }
+  catch (...) {}
 
   // Use heap also so that both of the virtual destructor entries in the vtable are used
   Common* common_ptr = new Common();

@@ -9,7 +9,6 @@
 #include <cola2_safety/safety_rules/navigator.h>
 #include <gtest/gtest.h>
 #include <ros/ros.h>
-
 #include <algorithm>
 #include <cstdint>
 #include <string>
@@ -20,11 +19,8 @@ TEST(TESTSuite, test)
   ros::NodeHandle nh("~");
 
   // Create publishers
-  ros::Publisher pub_nav =
-      nh.advertise<cola2_msgs::NavSts>(cola2::ros::getNamespace() + "/navigator/navigation", 10, true);
-  ros::Publisher pub_wwr = nh.advertise<cola2_msgs::WorldWaypointReq>(cola2::ros::getNamespace() + "/controller/"
-                                                                                                   "world_waypoint_req",
-                                                                      10, true);
+  ros::Publisher pub_nav = nh.advertise<cola2_msgs::NavSts>(cola2::ros::getNamespace() + "/navigator/navigation", 1, true);
+  ros::Publisher pub_wwr = nh.advertise<cola2_msgs::WorldWaypointReq>(cola2::ros::getNamespace() + "/controller/world_waypoint_req", 1, true);
 
   // Create error codes message
   std::string error_codes;
@@ -95,8 +91,6 @@ TEST(TESTSuite, test)
   nav_sts.header.stamp = ros::Time::now();
   nav_sts.position.depth = 0.0;
   pub_nav.publish(nav_sts);
-  nav_sts.global_position.latitude = 0.1;
-  pub_nav.publish(nav_sts);
   for (double now = ros::Time::now().toSec(); ros::Time::now().toSec() - now < 0.5;)
     ros::spinOnce();
 
@@ -129,8 +123,7 @@ TEST(TESTSuite, test)
     error_codes += "07 ";
 
   // Simulate no navigation escalated
-  navigator.periodicUpdate(
-      ros::Time::now() + ros::Duration(std::max(timeout + 1.0, SafetyRules::Navigator::INIT_TIME + 1.0)), &status_code);
+  navigator.periodicUpdate(ros::Time::now() + ros::Duration(std::max(timeout + 1.0, SafetyRules::Navigator::INIT_TIME + 1.0)), &status_code);
   if (navigator.getLevel() != SafetyRules::SafetyLevel::EMERGENCY_SURFACE)
     error_codes += "08 ";
 
@@ -139,14 +132,12 @@ TEST(TESTSuite, test)
   pub_nav.publish(nav_sts);
   for (double now = ros::Time::now().toSec(); ros::Time::now().toSec() - now < 0.5;)
     ros::spinOnce();
-  navigator.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Navigator::NO_DIAGNOSTICS_TIME + 1.0),
-                           &status_code);
+  navigator.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Navigator::NO_DIAGNOSTICS_TIME + 1.0), &status_code);
   if (navigator.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
     error_codes += "09 ";
 
   // Simulate no diagnostics after some time
-  navigator.periodicUpdate(
-      ros::Time::now() + ros::Duration(SafetyRules::Navigator::NO_DIAGNOSTICS_ESCALATED_TIME + 1.0), &status_code);
+  navigator.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Navigator::NO_DIAGNOSTICS_ESCALATED_TIME + 1.0), &status_code);
   if (navigator.getLevel() != SafetyRules::SafetyLevel::EMERGENCY_SURFACE)
     error_codes += "10 ";
 
@@ -221,8 +212,7 @@ TEST(TESTSuite, test)
   for (double now = ros::Time::now().toSec(); ros::Time::now().toSec() - now < 0.5;)
     ros::spinOnce();
   navigator.diagnosticsUpdate(diagnostic_array);
-  navigator.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Navigator::GPS_SURFACE_TIME + 1.0),
-                           &status_code);
+  navigator.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Navigator::GPS_SURFACE_TIME + 1.0), &status_code);
   if (navigator.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
     error_codes += "20 ";
 
@@ -231,8 +221,7 @@ TEST(TESTSuite, test)
   pub_nav.publish(nav_sts);
   for (double now = ros::Time::now().toSec(); ros::Time::now().toSec() - now < 0.5;)
     ros::spinOnce();
-  navigator.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Navigator::GPS_SURFACE_TIME + 1.0),
-                           &status_code);
+  navigator.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Navigator::GPS_SURFACE_TIME + 1.0), &status_code);
   if (navigator.getLevel() != SafetyRules::SafetyLevel::NONE)
     error_codes += "21 ";
 

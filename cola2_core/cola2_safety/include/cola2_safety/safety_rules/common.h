@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Iqua Robotics SL - All Rights Reserved
+ * Copyright (c) 2020 Iqua Robotics SL - All Rights Reserved
  *
  * This file is subject to the terms and conditions defined in file
  * 'LICENSE.txt', which is part of this source code package.
@@ -20,7 +20,6 @@
 #include <diagnostic_msgs/KeyValue.h>
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
-
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -101,14 +100,13 @@ struct SafetyLevel
  */
 class SafetyRuleBaseClass
 {
-protected:
+ protected:
   // The DataType class is used to represent the types that can be parsed from the diagnostics messages
   enum class DataType
   {
     Bool,
     Double,
-    Int,
-    String
+    Int
   };
 
   // ParseList type. It is a vector of status_name, key_name, var_name and data_type
@@ -129,7 +127,6 @@ protected:
   std::map<std::string, bool> bool_vars_;
   std::map<std::string, double> double_vars_;
   std::map<std::string, int> int_vars_;
-  std::map<std::string, std::string> string_vars_;
 
   /**
    * \brief This method returns a printable string name for a given DataType
@@ -145,15 +142,11 @@ protected:
    */
   std::string createMessage(const std::string&);
 
-public:
+ public:
   // These are common values that are used throughout the implementation of different safety rules
   static constexpr double INIT_TIME = 20.0;
   static constexpr double NO_DIAGNOSTICS_TIME = 30.0;
   static constexpr double NO_DIAGNOSTICS_ESCALATED_TIME = 630.0;
-
-  // These are strings with special meaning
-  inline static const std::string DIAGNOSTIC_STATUS_LEVEL = "LeVeL__LeVeL__LeVeL";
-  inline static const std::string DIAGNOSTIC_STATUS_MESSAGE = "MeSsAgE__MeSsAgE__MeSsAgE";
 
   /**
    * \brief Constructor
@@ -235,20 +228,6 @@ public:
    * \returns true if the variable is available and false otherwise
    */
   virtual bool hasInt(const std::string&);
-
-  /**
-   * \brief This method is used to obtain a parsed string variable given its name
-   * \param[in] String variable name
-   * \return The value of the requested string variable
-   */
-  virtual std::string getString(const std::string&);
-
-  /**
-   * \brief This method is used to check if a string variable has been parsed from the last diagnostic message
-   * \param[in] String variable name
-   * \returns true if the variable is available and false otherwise
-   */
-  virtual bool hasString(const std::string&);
 
   /**
    * \brief This method is periodically called from the safety supervisor to update the internal state of the

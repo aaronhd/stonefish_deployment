@@ -5,11 +5,9 @@
  * 'LICENSE.txt', which is part of this source code package.
  */
 
-#include <cola2_lib_ros/navigation_helper.h>
+#include <cola2_safety/safety_rules/navigator.h>
 #include <cola2_lib_ros/param_loader.h>
 #include <cola2_lib_ros/this_node.h>
-#include <cola2_safety/safety_rules/navigator.h>
-
 #include <algorithm>
 
 namespace SafetyRules
@@ -35,26 +33,31 @@ Navigator::Navigator(const std::string& rule_name, ros::NodeHandle* nh_ptr)
 {
   loadConfigFromParamServer();
 
-  const ParseList parse_list(
-      { { std::string("/navigation/") + rule_name_, "filter_init", "filter_init", DataType::Bool },
-        { std::string("/navigation/") + rule_name_, "last_imu_data", "last_imu_data", DataType::Double },
-        { std::string("/navigation/") + rule_name_, "last_depth_data", "last_depth_data", DataType::Double },
-        { std::string("/navigation/") + rule_name_, "last_altitude_data", "last_altitude_data", DataType::Double },
-        { std::string("/navigation/") + rule_name_, "last_dvl_data", "last_dvl_data", DataType::Double },
-        { std::string("/navigation/") + rule_name_, "last_gps_data", "last_gps_data", DataType::Double },
-        { std::string("/navigation/") + rule_name_, "frequency", "frequency", DataType::Double } });
+  const ParseList parse_list({
+    {std::string("/navigation/") + rule_name_, "filter_init", "filter_init", DataType::Bool},
+    {std::string("/navigation/") + rule_name_, "last_imu_data", "last_imu_data", DataType::Double},
+    {std::string("/navigation/") + rule_name_, "last_depth_data", "last_depth_data", DataType::Double},
+    {std::string("/navigation/") + rule_name_, "last_altitude_data", "last_altitude_data", DataType::Double},
+    {std::string("/navigation/") + rule_name_, "last_dvl_data", "last_dvl_data", DataType::Double},
+    {std::string("/navigation/") + rule_name_, "last_gps_data", "last_gps_data", DataType::Double},
+    {std::string("/navigation/") + rule_name_, "frequency", "frequency", DataType::Double}
+  });
   setParseList(parse_list);
 
   // Subscriber
-  sub_nav_ = nh_ptr->subscribe(cola2::ros::getNamespace() + "/navigator/navigation", 10, &Navigator::navCallback, this);
-  sub_wwr_ = nh_ptr->subscribe(cola2::ros::getNamespace() + "/controller/world_waypoint_req", 10,
+  sub_nav_ = nh_ptr->subscribe(cola2::ros::getNamespace() + "/navigator/navigation", 1, &Navigator::navCallback, this);
+  sub_wwr_ = nh_ptr->subscribe(cola2::ros::getNamespace() + "/controller/world_waypoint_req", 1,
                                &Navigator::wwrCallback, this);
 }
 
-void Navigator::parseDiagnostics()
+void
+Navigator::parseDiagnostics()
 {
-  const bool valid_diagnostics = hasBool("filter_init") && hasDouble("last_imu_data") && hasDouble("last_depth_data") &&
-                                 hasDouble("last_altitude_data") && hasDouble("last_dvl_data") &&
+  const bool valid_diagnostics = hasBool("filter_init") &&
+                                 hasDouble("last_imu_data") &&
+                                 hasDouble("last_depth_data") &&
+                                 hasDouble("last_altitude_data") &&
+                                 hasDouble("last_dvl_data") &&
                                  hasDouble("last_gps_data");
   if (valid_diagnostics)
   {
@@ -68,14 +71,9 @@ void Navigator::parseDiagnostics()
   }
 }
 
-void Navigator::navCallback(const cola2_msgs::NavSts& nav)
+void
+Navigator::navCallback(const cola2_msgs::NavSts& nav)
 {
-  // Check for valid navigation
-  if (!cola2::ros::navigationIsValid(nav))
-  {
-    return;
-  }
-
   last_nav_data_ = nav.header.stamp.toSec();
   if ((last_surfaced_ == 0.0) && (nav.position.depth <= SURFACE_DEPTH))
     last_surfaced_ = last_nav_data_;
@@ -83,13 +81,15 @@ void Navigator::navCallback(const cola2_msgs::NavSts& nav)
     last_surfaced_ = 0.0;
 }
 
-void Navigator::wwrCallback(const cola2_msgs::WorldWaypointReq& wwr)
+void
+Navigator::wwrCallback(const cola2_msgs::WorldWaypointReq& wwr)
 {
   if (wwr.altitude_mode)
     last_altitude_wwr_ = wwr.header.stamp.toSec();
 }
 
-void Navigator::periodicUpdate(const ros::Time& stamp, std::uint32_t* status_code_ptr)
+void
+Navigator::periodicUpdate(const ros::Time& stamp, std::uint32_t* status_code_ptr)
 {
   // Clear level, message and status code bit
   level_ = SafetyLevel::NONE;
@@ -102,7 +102,7 @@ void Navigator::periodicUpdate(const ros::Time& stamp, std::uint32_t* status_cod
       first_no_altitude_ = stamp.toSec();
   }
   else
-    first_no_altitude_ = 0.0;
+      first_no_altitude_ = 0.0;
 
   // Check data
   if (last_valid_config_ == 0.0)
@@ -192,7 +192,8 @@ void Navigator::periodicUpdate(const ros::Time& stamp, std::uint32_t* status_cod
       }
 
       // GPS data timeout
-      if ((last_surfaced_ != 0.0) && (stamp.toSec() - last_surfaced_ > GPS_SURFACE_TIME) &&
+      if ((last_surfaced_ != 0.0) &&
+          (stamp.toSec() - last_surfaced_ > GPS_SURFACE_TIME) &&
           (last_gps_data_ > gps_data_timeout_))
       {
         level_ = std::max(level_, static_cast<SafetyLevel::Type>(SafetyLevel::ABORT_AND_SURFACE));
@@ -220,7 +221,8 @@ void Navigator::periodicUpdate(const ros::Time& stamp, std::uint32_t* status_cod
     StatusCodeBits::setBit(status_code_ptr, StatusCodeBits::NAVIGATION_ERROR, true);
 }
 
-bool Navigator::loadConfigFromParamServer()
+bool
+Navigator::loadConfigFromParamServer()
 {
   // Load config from param server
   double temp_nav_data_timeout;
@@ -233,10 +235,8 @@ bool Navigator::loadConfigFromParamServer()
   bool ok = true;
   ok &= cola2::ros::getParam(std::string("~") + rule_name_ + std::string("/nav_data_timeout"), temp_nav_data_timeout);
   ok &= cola2::ros::getParam(std::string("~") + rule_name_ + std::string("/imu_data_timeout"), temp_imu_data_timeout);
-  ok &=
-      cola2::ros::getParam(std::string("~") + rule_name_ + std::string("/depth_data_timeout"), temp_depth_data_timeout);
-  ok &= cola2::ros::getParam(std::string("~") + rule_name_ + std::string("/altitude_data_timeout"),
-                             temp_altitude_data_timeout);
+  ok &= cola2::ros::getParam(std::string("~") + rule_name_ + std::string("/depth_data_timeout"), temp_depth_data_timeout);
+  ok &= cola2::ros::getParam(std::string("~") + rule_name_ + std::string("/altitude_data_timeout"), temp_altitude_data_timeout);
   ok &= cola2::ros::getParam(std::string("~") + rule_name_ + std::string("/dvl_data_timeout"), temp_dvl_data_timeout);
   ok &= cola2::ros::getParam(std::string("~") + rule_name_ + std::string("/gps_data_timeout"), temp_gps_data_timeout);
   ok &= cola2::ros::getParam(std::string("~") + rule_name_ + std::string("/min_frequency"), temp_min_frequency);

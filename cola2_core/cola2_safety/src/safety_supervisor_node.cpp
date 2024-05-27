@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2023 Iqua Robotics SL - All Rights Reserved
+ * Copyright (c) 2020 Iqua Robotics SL - All Rights Reserved
  *
  * This file is subject to the terms and conditions defined in file
  * 'LICENSE.txt', which is part of this source code package.
  */
 
+#include <ros/ros.h>
 #include <cola2_lib_ros/param_loader.h>
 #include <cola2_lib_ros/serviceclient_helper.h>
 #include <cola2_lib_ros/this_node.h>
@@ -13,6 +14,8 @@
 #include <cola2_msgs/RecoveryAction.h>
 #include <cola2_msgs/SafetySupervisorStatus.h>
 #include <cola2_msgs/Setpoints.h>
+#include <diagnostic_msgs/DiagnosticArray.h>
+#include <std_srvs/Trigger.h>
 #include <cola2_safety/safety_rules/battery_control_board.h>
 #include <cola2_safety/safety_rules/battery_level.h>
 #include <cola2_safety/safety_rules/captain.h>
@@ -27,10 +30,6 @@
 #include <cola2_safety/safety_rules/virtual_cage.h>
 #include <cola2_safety/safety_rules/watchdog_timer.h>
 #include <cola2_safety/safety_rules/water_inside.h>
-#include <diagnostic_msgs/DiagnosticArray.h>
-#include <ros/ros.h>
-#include <std_srvs/Trigger.h>
-
 #include <cstdint>
 #include <cstdlib>
 #include <exception>
@@ -38,7 +37,8 @@
 #include <vector>
 
 template <typename T>
-bool callServiceHelper(ros::NodeHandle* nh_ptr, const std::string& srv_name)
+bool
+callServiceHelper(ros::NodeHandle* nh_ptr, const std::string& srv_name)
 {
   const double time_init = ros::Time::now().toSec();
   bool valid_call = false;
@@ -74,11 +74,11 @@ bool callServiceHelper(ros::NodeHandle* nh_ptr, const std::string& srv_name)
 
 class SafetySupervisor
 {
-protected:
+ protected:
   ros::NodeHandle nh_;
   ros::Publisher pub_sss_, pub_ra_, pub_thrusters_;
   ros::Subscriber sub_diag_, sub_captain_;
-  ros::ServiceServer srv_reload_params_, srv_reset_emergency_ramp_;
+  ros::ServiceServer srv_reload_params_;
   ros::Timer main_timer_;
   std::string ns_;
   std::vector<SafetyRules::SafetyRuleBaseClass*> rules_;
@@ -98,12 +98,11 @@ protected:
 
   // Methods
   bool srvReloadParams(std_srvs::Trigger::Request&, std_srvs::Trigger::Response&);
-  bool srvResetEmergencyRamp(std_srvs::Trigger::Request&, std_srvs::Trigger::Response&);
   void diagnosticsCallback(const diagnostic_msgs::DiagnosticArray&);
   void captainStatusCallback(const cola2_msgs::CaptainStatus&);
   void mainTimerCallback(const ros::TimerEvent&);
 
-public:
+ public:
   SafetySupervisor();
   ~SafetySupervisor();
 };
@@ -188,8 +187,6 @@ SafetySupervisor::SafetySupervisor()
 
   // Services
   srv_reload_params_ = nh_.advertiseService("reload_params", &SafetySupervisor::srvReloadParams, this);
-  srv_reset_emergency_ramp_ =
-      nh_.advertiseService("reset_emergency_ramp", &SafetySupervisor::srvResetEmergencyRamp, this);
 
   // Subscriber
   sub_diag_ = nh_.subscribe(ns_ + "/diagnostics_agg", 1, &SafetySupervisor::diagnosticsCallback, this);
@@ -207,7 +204,8 @@ SafetySupervisor::~SafetySupervisor()
     delete rule;
 }
 
-bool SafetySupervisor::srvReloadParams(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
+bool
+SafetySupervisor::srvReloadParams(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
 {
   ROS_INFO("Reload params service called");
 
@@ -234,16 +232,8 @@ bool SafetySupervisor::srvReloadParams(std_srvs::Trigger::Request&, std_srvs::Tr
   return true;
 }
 
-bool SafetySupervisor::srvResetEmergencyRamp(std_srvs::Trigger::Request&, std_srvs::Trigger::Response& res)
-{
-  ROS_INFO("Reset emergency ramp");
-  last_emergency_surface_time_ = ros::Time::now().toSec();
-  res.message = "Success";
-  res.success = true;
-  return true;
-}
-
-void SafetySupervisor::diagnosticsCallback(const diagnostic_msgs::DiagnosticArray& msg)
+void
+SafetySupervisor::diagnosticsCallback(const diagnostic_msgs::DiagnosticArray& msg)
 {
   // Pass the diagnostics to all the rules
   for (const auto& rule : rules_)
@@ -269,14 +259,16 @@ void SafetySupervisor::diagnosticsCallback(const diagnostic_msgs::DiagnosticArra
   }
 }
 
-void SafetySupervisor::captainStatusCallback(const cola2_msgs::CaptainStatus& msg)
+void
+SafetySupervisor::captainStatusCallback(const cola2_msgs::CaptainStatus& msg)
 {
   // This is just to avoid enabling the safety keep position over an over again
   in_safety_keep_position_ = (msg.state == cola2_msgs::CaptainStatus::SAFETYKEEPPOSITION);
   last_captain_status_time_ = ros::Time::now().toSec();
 }
 
-void SafetySupervisor::mainTimerCallback(const ros::TimerEvent& event)
+void
+SafetySupervisor::mainTimerCallback(const ros::TimerEvent& event)
 {
   // Do periodic update, get max level and status code, and publish rule
   std::size_t level = 0;
@@ -309,8 +301,8 @@ void SafetySupervisor::mainTimerCallback(const ros::TimerEvent& event)
   {
     if ((level == SafetyRules::SafetyLevel::ABORT) || (level == SafetyRules::SafetyLevel::ABORT_AND_SURFACE))
     {
-      ROS_INFO_STREAM_THROTTLE(5.0, "Navigation filter is not initialized. Safety level decreased from "
-                                        << SafetyRules::SafetyLevel::getName(level) << " to INFORMATIVE");
+      ROS_INFO_STREAM_THROTTLE(5.0, "Navigation filter is not initialized. Safety level decreased from " <<
+                                     SafetyRules::SafetyLevel::getName(level) << " to INFORMATIVE");
       level = SafetyRules::SafetyLevel::INFORMATIVE;
     }
   }
@@ -363,7 +355,8 @@ void SafetySupervisor::mainTimerCallback(const ros::TimerEvent& event)
   {
     SafetyRules::StatusCodeBits::setBit(&status_code, SafetyRules::StatusCodeBits::RA_ABORT_SURFACE, true);
     ROS_WARN_THROTTLE(1.0, "Recovery action: enabling safety keep position");
-    if ((last_captain_status_time_ == 0.0) || (event.current_real.toSec() - last_captain_status_time_ > 10.0) ||
+    if ((last_captain_status_time_ == 0.0) ||
+        (event.current_real.toSec() - last_captain_status_time_ > 10.0) ||
         (!in_safety_keep_position_))
     {
       // This is done if not in safety keep position
@@ -395,8 +388,8 @@ void SafetySupervisor::mainTimerCallback(const ros::TimerEvent& event)
     cola2_msgs::Setpoints msg_setpoints;
     msg_setpoints.header.stamp = ros::Time::now();  // Safer than using event
     msg_setpoints.header.frame_id = "safety";
-    const double factor =
-        std::max(0.0, std::min(1.0, (event.current_real.toSec() - last_emergency_surface_time_) / 30.0));
+    const double factor = std::max(0.0, std::min(1.0, (event.current_real.toSec() -
+                                                       last_emergency_surface_time_) / 30.0));
     msg_setpoints.setpoints.reserve(emergency_surface_setpoints_.size());
     for (const auto& setpoint : emergency_surface_setpoints_)
       msg_setpoints.setpoints.push_back(factor * setpoint);

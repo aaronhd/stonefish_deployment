@@ -9,7 +9,6 @@
 #include <cola2_safety/safety_rules/comms.h>
 #include <gtest/gtest.h>
 #include <ros/ros.h>
-
 #include <cstdint>
 #include <string>
 
@@ -37,12 +36,6 @@ TEST(TESTSuite, test)
   diagnostic_key_value.value = "0";
   diagnostic_status.values.push_back(diagnostic_key_value);
   diagnostic_array.status.push_back(diagnostic_status);
-  diagnostic_msgs::DiagnosticStatus diagnostic_status_modem;
-  diagnostic_status_modem.level = diagnostic_msgs::DiagnosticStatus::OK;
-  diagnostic_status_modem.name = "/safety/modem";
-  diagnostic_status_modem.message = "test_message";
-  diagnostic_status_modem.hardware_id = "test_hardware_id";
-  diagnostic_array.status.push_back(diagnostic_status_modem);
 
   // Create rule
   SafetyRules::Comms comms("comms");
@@ -60,58 +53,25 @@ TEST(TESTSuite, test)
   ros::param::set("~comms/modem_data_timeout", timeout);
   comms.loadConfigFromParamServer();
 
-  // Simulate no diagnostics at the beginning
+  // Simulate no diagnostics at the beginning (running fine)
   comms.periodicUpdate(ros::Time::now(), &status_code);
-  if (comms.getLevel() != SafetyRules::SafetyLevel::INFORMATIVE)
+  if (comms.getLevel() != SafetyRules::SafetyLevel::NONE)
     error_codes += "03 ";
-
-  // Simulate no diagnostics after some time at the beginning
-  comms.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Comms::INIT_TIME + 1.0), &status_code);
-  if (comms.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
-    error_codes += "04 ";
-
-  // Simulate no diagnostics
-  comms.diagnosticsUpdate(diagnostic_array);
-  comms.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Comms::NO_DIAGNOSTICS_TIME + 1.0), &status_code);
-  if (comms.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
-    error_codes += "05 ";
-
-  // Simulate no diagnostics after some time
-  comms.periodicUpdate(ros::Time::now() + ros::Duration(SafetyRules::Comms::NO_DIAGNOSTICS_ESCALATED_TIME + 1.0),
-                       &status_code);
-  if (comms.getLevel() != SafetyRules::SafetyLevel::EMERGENCY_SURFACE)
-    error_codes += "06 ";
 
   // Simulate modem timeout
   diagnostic_array.status[0].values[0].value = std::to_string(timeout + 1.0);
   comms.diagnosticsUpdate(diagnostic_array);
   comms.periodicUpdate(ros::Time::now(), &status_code);
   if (comms.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
-    error_codes += "07 ";
-
-  // Simulate modem error
-  diagnostic_array.status[0].values[0].value = "0.0";
-  diagnostic_array.status[1].level = diagnostic_msgs::DiagnosticStatus::ERROR;
-  comms.diagnosticsUpdate(diagnostic_array);
-  comms.periodicUpdate(ros::Time::now(), &status_code);
-  if (comms.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
-    error_codes += "08 ";
+    error_codes += "04 ";
 
   // Simulate modem recovery action
-  diagnostic_array.status[1].level = diagnostic_msgs::DiagnosticStatus::OK;
   diagnostic_array.status[0].values[0].value = "0.0";
   diagnostic_array.status[0].values[1].value = "3";
   comms.diagnosticsUpdate(diagnostic_array);
   comms.periodicUpdate(ros::Time::now(), &status_code);
   if (comms.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
-    error_codes += "09 ";
-
-  // Simulate invalid modem recovery action
-  diagnostic_array.status[0].values[1].value = "30";
-  comms.diagnosticsUpdate(diagnostic_array);
-  comms.periodicUpdate(ros::Time::now(), &status_code);
-  if (comms.getLevel() != SafetyRules::SafetyLevel::ABORT_AND_SURFACE)
-    error_codes += "10 ";
+    error_codes += "05 ";
 
   // Use heap also so that both of the virtual destructor entries in the vtable are used
   SafetyRules::Comms* base_class_ptr = new SafetyRules::Comms("comms");

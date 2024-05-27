@@ -16,24 +16,23 @@ This node prevents the vehicle to go below a maximum depth or a minimum altitude
 
 **Publishers**:
 
-* /controller/body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /controller/body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
 
 **Subscribers**:
 
-* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/NavSts.html)]
+* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/NavSts.html)]
 
 **Services**:
 
-* /safe_depth_altitude/disable_no_altitude_goes_up [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /safe_depth_altitude/enable_no_altitude_goes_up [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /safe_depth_altitude/reload_params [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
+* /safe_depth_altitude/disable_no_altitude_goes_up [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /safe_depth_altitude/enable_no_altitude_goes_up [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /safe_depth_altitude/reload_params [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
 
 **Parameters**:
 
 * /safe_depth_altitude/max_depth
 * /safe_depth_altitude/min_altitude
-* /safe_depth_altitude/min_altitude_starts_at_depth
 
 [//]: <> (safe_depth_altitude end)
 
@@ -49,23 +48,22 @@ This node checks a set of rules aimed at detecting errors in the system (low bat
 
 **Publishers**:
 
-* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/Setpoints.html)]
-* /safety_supervisor/rules_recovery_actions [[cola2_msgs/RecoveryAction](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/RecoveryAction.html)]
-* /safety_supervisor/status [[cola2_msgs/SafetySupervisorStatus](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/SafetySupervisorStatus.html)]
+* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/Setpoints.html)]
+* /safety_supervisor/rules_recovery_actions [[cola2_msgs/RecoveryAction](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/RecoveryAction.html)]
+* /safety_supervisor/status [[cola2_msgs/SafetySupervisorStatus](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/SafetySupervisorStatus.html)]
 
 **Subscribers**:
 
-* /captain/captain_status [[cola2_msgs/CaptainStatus](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/CaptainStatus.html)]
-* /captain/state_feedback [[cola2_msgs/CaptainStateFeedback](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/CaptainStateFeedback.html)]
-* /controller/world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
-* /diagnostics_agg [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/NavSts.html)]
+* /captain/captain_status [[cola2_msgs/CaptainStatus](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/CaptainStatus.html)]
+* /captain/state_feedback [[cola2_msgs/CaptainStateFeedback](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/CaptainStateFeedback.html)]
+* /controller/world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
+* /diagnostics_agg [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/NavSts.html)]
 
 **Services**:
 
-* /safety_supervisor/manual/set_level [[cola2_msgs/Recovery](http://api.iquarobotics.com/202401/api/cola2_msgs/html/srv/Recovery.html)]
-* /safety_supervisor/reload_params [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /safety_supervisor/reset_emergency_ramp [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
+* /safety_supervisor/manual/set_level [[cola2_msgs/Recovery](http://api.iquarobotics.com/202010/api/cola2_msgs/html/srv/Recovery.html)]
+* /safety_supervisor/reload_params [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
 
 **Parameters**:
 
@@ -126,12 +124,12 @@ This node continuously checks that the safety_supervisor node is alive. If the s
 
 **Publishers**:
 
-* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/Setpoints.html)]
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/Setpoints.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
 
 **Subscribers**:
 
-* /safety_supervisor/status [[cola2_msgs/SafetySupervisorStatus](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/SafetySupervisorStatus.html)]
+* /safety_supervisor/status [[cola2_msgs/SafetySupervisorStatus](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/SafetySupervisorStatus.html)]
 
 **Services**: None
 
@@ -153,16 +151,16 @@ This node checks if the vehicle moves beyond some given virtual limits defined i
 
 **Publishers**:
 
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /virtual_cage/cage_marker [[visualization_msgs/Marker](http://docs.ros.org/noetic/api/visualization_msgs/html/msg/Marker.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /virtual_cage/cage_marker [[visualization_msgs/Marker](http://docs.ros.org/melodic/api/visualization_msgs/html/msg/Marker.html)]
 
 **Subscribers**:
 
-* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/NavSts.html)]
+* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/NavSts.html)]
 
 **Services**:
 
-* /virtual_cage/reload_params [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
+* /virtual_cage/reload_params [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
 
 **Parameters**:
 
@@ -184,15 +182,15 @@ This node keeps track of the COLA2 running time. It is used by the safety superv
 
 **Publishers**:
 
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /watchdog_timer/elapsed_time [[std_msgs/Int32](http://docs.ros.org/noetic/api/std_msgs/html/msg/Int32.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /watchdog_timer/elapsed_time [[std_msgs/Int32](http://docs.ros.org/melodic/api/std_msgs/html/msg/Int32.html)]
 
 **Subscribers**: None
 
 
 **Services**:
 
-* /watchdog_timer/reset_timeout [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
+* /watchdog_timer/reset_timeout [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
 
 **Parameters**: None
 

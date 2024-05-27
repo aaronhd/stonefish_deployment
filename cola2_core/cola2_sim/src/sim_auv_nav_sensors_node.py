@@ -10,7 +10,7 @@ import rospy
 import tf
 # Import msgs
 from cola2_msgs.msg import DVL  # dvl
-from geometry_msgs.msg import PoseWithCovarianceStamped  # usbl
+from geometry_msgs.msg  import PoseWithCovarianceStamped # usbl
 from sensor_msgs.msg import FluidPressure  # depth
 from sensor_msgs.msg import Imu  # imu
 from sensor_msgs.msg import NavSatFix  # gps
@@ -121,9 +121,9 @@ class SimAUVNavSensors(object):
                 found = True
             except Exception as e:
                 rospy.logwarn("cannot find all transforms")
-                rospy.logwarn(e)
+                rospy.logwarn(e.message)
                 rospy.sleep(2.0)
-                # exit(1) This should not exit as sometimes not all tfs are available on the first run
+                #exit(1) This should not exit as sometimes not all tfs are available on the first run
 
         # Init simulated sensors
         if self.gps_period > 0:
@@ -203,9 +203,9 @@ class SimAUVNavSensors(object):
         # Transform to sensor
         rot = tf.transformations.euler_matrix(*self.rpy)[:3, :3]
         gps_xyz = rot.dot(self.tf_gps[0])
-        ned = ned - np.array([[gps_xyz[0, 0], gps_xyz[1, 0], 0.0]]).T
+        ned = ned - np.array([[gps_xyz[0], gps_xyz[1], 0.0]]).T
         # Transform to lat lon
-        lat, lon, _ = self.ned.ned2geodetic([ned[0, 0], ned[1, 0], 0.0])
+        lat, lon, _ = self.ned.ned2geodetic([ned[0], ned[1], 0.0])
         # Create message
         gps = NavSatFix()
         gps.header.stamp = event.current_real
@@ -252,9 +252,9 @@ class SimAUVNavSensors(object):
         # Transform to sensor
         rot = tf.transformations.euler_matrix(*self.rpy)[:3, :3]
         usbl_xyz = rot.dot(self.tf_usbl[0])
-        ned = ned - np.array([[usbl_xyz[0, 0], usbl_xyz[1, 0], 0.0]]).T
+        ned = ned - np.array([[usbl_xyz[0], usbl_xyz[1], 0.0]]).T
         # Transform to lat lon
-        lat, lon, _ = self.ned.ned2geodetic([ned[0, 0], ned[1, 0], 0.0])
+        lat, lon, _ = self.ned.ned2geodetic([ned[0], ned[1], 0.0])
         # Create message
         usbl = PoseWithCovarianceStamped()
         usbl.header.stamp = event.current_real - rospy.Duration(self.usbl_period)
@@ -361,8 +361,7 @@ class SimAUVNavSensors(object):
         rot = tf.transformations.euler_matrix(r, p, y)[:3, :3]
         # TODO: Is this right? Maybe vehicle_rpy * self.imu_tf.M instead???
         wrot = np.eye(4)
-        # wrot[:3, :3] = self.tf_imu_filter[1].dot(rot)
-        wrot[:3, :3] = rot.dot(self.tf_imu_filter[1].T)
+        wrot[:3, :3] = self.tf_imu_filter[1].dot(rot)
         quat = tf.transformations.quaternion_from_matrix(wrot)
         # IMU
         msg = Imu()
