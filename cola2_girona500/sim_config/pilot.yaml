@@ -2,7 +2,7 @@
 section/tolerance_z: 1.0                  # Heave tolerance in meters
 section/delta: 6.0                        # Lookahead distance
 section/distance_to_max_velocity: 5.0     # Speed transition ramp distance
-section/max_surge_velocity: 2.5           # Highest allowed vehicle speed
+section/max_surge_velocity: 1.0           # Highest allowed vehicle speed
 section/min_surge_velocity: 0.2           # Lowest allowed vehicle speed
 
 # Parameters for the anchor controller

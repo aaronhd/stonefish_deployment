@@ -8,10 +8,7 @@ analyzers:
   safety:
     type: diagnostic_aggregator/GenericAnalyzer
     path: safety
-    name: ['batteries', 'main_control_board', 'battery_control_board', 'virtual_cage',
-      'safe_depth_altitude', 'watchdog_timer', 'comms', 'modem', 'computer_logger',
-      'param_logger', 'safety_supervisor_checker', 'bag_recorder', 'cola2_version',
-      'default_param_handler']
+    name: ['batteries', 'main_control_board', 'battery_control_board', 'virtual_cage', 'safe_depth_altitude', 'watchdog_timer', 'comms', 'modem', 'computer_logger', 'param_logger', 'safety_supervisor_checker']
 
   navigation:
     type: diagnostic_aggregator/GenericAnalyzer
