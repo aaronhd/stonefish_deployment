@@ -1,11 +1,18 @@
 <!-- THIS LAUNCH FILE IS INTENDED TO BE USED FROM THE NODE cola2_log bag_recorder_node.py -->
 <launch>
   <arg name="robot_name"/>
+  <arg name="has_camera" value="True"/>
   <arg name="launch_number" default="0"/>
   <node name="record_auv_bag_$(arg launch_number)" output="screen" pkg="rosbag" type="record" args="
-    -a
-    --repeat-latched
+    -a -x '/$(arg robot_name)/flir_spinnaker_camera/(.*)'
     --split --size 2048 -o $(env HOME)/bags/$(arg robot_name)"/>
 
-
+  <node if="$(arg has_camera)" name="record_auv_image_$(arg launch_number)" output="screen" pkg="rosbag" type="record" args="
+    /$(arg robot_name)/navigator/odometry
+    /$(arg robot_name)/navigator/navigation
+    /$(arg robot_name)/flir_spinnaker_camera/camera_info
+    /$(arg robot_name)/flir_spinnaker_camera/image_raw/acquisition_settings
+    /$(arg robot_name)/flir_spinnaker_camera/image_raw/compressed
+    /$(arg robot_name)/flir_spinnaker_camera/status
+    --split --size 2048 -o $(env HOME)/bags/$(arg robot_name)_image"/>
 </launch>

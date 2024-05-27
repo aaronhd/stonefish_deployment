@@ -1,7 +1,7 @@
 <launch>
   <!-- Input arguments -->
-  <arg name="robot_name"/>
-  <arg name="robot_xacro"/>
+  <arg name="robot_name" default="sparus2"/>
+  <arg name="robot_xacro" default="$(find sparus2_description)/urdf/payload.urdf.xacro"/>
 
   <!-- Load robot description -->
   <include file="$(find sparus2_description)/launch/sparus2_description.launch">
@@ -18,7 +18,6 @@
   <rosparam command="load" ns="default_param_handler" file="$(arg config_folder)/default_param_handler.yaml"/>
   <rosparam command="load" ns="diagnostic_aggregator" file="$(arg config_folder)/diagnostic_aggregator.yaml"/>
   <rosparam command="load" ns="logitech_fx10_to_teleoperation" file="$(arg config_folder)/logitech_fx10_to_teleoperation.yaml"/>
-  <rosparam command="load" ns="mission_reporter" file="$(arg config_folder)/mission_reporter.yaml"/>
   <rosparam command="load" ns="navigator" file="$(arg config_folder)/navigator.yaml"/>
   <rosparam command="load" ns="pilot" file="$(arg config_folder)/pilot.yaml"/>
   <rosparam command="load" ns="safe_depth_altitude" file="$(arg config_folder)/safe_depth_altitude.yaml"/>

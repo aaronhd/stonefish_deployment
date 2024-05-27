@@ -1,14 +1,14 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 2.8.3)
 project(cola2_sparus2)
 
 find_package(catkin REQUIRED COMPONENTS
   # ROS Dependencies
-  diagnostic_aggregator
-  joy
   rosbridge_server
-  rviz
   tf
   topic_tools
+  rviz
+  diagnostic_aggregator
+  joy
 
   # COLA2 Dependencies
   sparus2_description

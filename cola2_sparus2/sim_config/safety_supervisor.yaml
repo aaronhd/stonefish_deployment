@@ -16,20 +16,22 @@ captain/type: "Captain"
 
 # Check enabled with abort and surface action
 check_enabled_abort_and_surface/type: "CheckEnabled"
-check_enabled_abort_and_surface/diagnostic_status_names_to_check: ["/safety/safe_depth_altitude", "/safety/bag_recorder", "/safety/default_param_handler"]
+check_enabled_abort_and_surface/diagnostic_status_names_to_check: ["/safety/safe_depth_altitude"]
 check_enabled_abort_and_surface/level_if_not_enabled: 3
 
 # Check enabled with emergency surface action
 check_enabled_emergency_surface/type: "CheckEnabled"
-check_enabled_emergency_surface/diagnostic_status_names_to_check: ["/control/controller",
-  "/control/captain", "/control/pilot", "/safety/safety_supervisor_checker"]
+check_enabled_emergency_surface/diagnostic_status_names_to_check: ["/control/controller", "/control/captain", "/control/pilot", "/safety/safety_supervisor_checker"]
 check_enabled_emergency_surface/level_if_not_enabled: 4
 
 # Check enabled with informative action
 check_enabled_informative/type: "CheckEnabled"
-check_enabled_informative/diagnostic_status_names_to_check: ["/control/thrusters",
-  "/safety/param_logger", "/safety/cola2_version"]
+check_enabled_informative/diagnostic_status_names_to_check: ["/control/thrusters", "/safety/param_logger"]
 check_enabled_informative/level_if_not_enabled: 1
+
+# Comms safety rule
+#comms/type: "Comms"
+#comms/modem_data_timeout: 600.0
 
 # Teleoperation safety rule
 teleoperation/type: "Teleoperation"

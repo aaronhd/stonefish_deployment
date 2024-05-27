@@ -75,9 +75,9 @@ p_pitch_td: 0.0
 p_pitch_i_limit: 0.0
 p_pitch_fff: 0.0
 
-p_yaw_kp: 2.5
+p_yaw_kp: 0.5
 p_yaw_ti: 0.0
-p_yaw_td: 0.0
+p_yaw_td: 2.0
 p_yaw_i_limit: 0.0
 p_yaw_fff: 0.0
 

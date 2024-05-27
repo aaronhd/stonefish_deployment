@@ -1,5 +1,4 @@
 <launch>
-  <!-- Input arguments -->
   <arg name="robot_name"/>
 
   <!-- Safety nodes -->
@@ -28,16 +27,14 @@
   </node>
   <node name="controller" pkg="cola2_control" type="controller_node"/>
   <node name="pilot" pkg="cola2_control" type="pilot_node" output="screen"/>
-  <node name="teleoperation" pkg="cola2_control" type="teleoperation_node" output="screen"/>
+  <node name="teleoperation" pkg="cola2_control" type="teleoperation_node.py" output="screen"/>
   <node name="test_thrusters" pkg="cola2_control" type="test_thrusters.py" output="screen"/>
 
   <!-- Log -->
   <node name="bag_recorder" pkg="cola2_log" type="bag_recorder_node.py" output="screen"/>
-  <node name="cola2_version" pkg="cola2_log" type="cola2_version_node.py" output="screen"/>
   <node name="computer_logger" pkg="cola2_log" type="computer_logger_node.py" respawn="true" output="screen"/>
   <node name="default_param_handler" pkg="cola2_log" type="default_param_handler_node.py" respawn="true" output="screen">
     <param name="config_folder" value="sim_config"/>
   </node>
-  <node name="mission_reporter" pkg="cola2_log" type="mission_reporter" output="screen"/>
   <node name="param_logger" pkg="cola2_log" type="param_logger_node.py" output="screen"/>
 </launch>
