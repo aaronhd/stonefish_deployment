@@ -13,32 +13,32 @@ TCM: [-1.0, -1.0, 0.0, 0.0, 0.0,
 # Thruster 1
 thruster_1_poly_positive: [0.0473235, 0.063145, -0.00256629, 0.000052432528, -0.00000050454768, 0.000000001842152]  # Positive sign in serial port string, means robot moves backwards
 thruster_1_poly_negative: [0.04997604, 0.05975017, -0.0022952, 0.0000439588388, -0.00000039543457, 0.00000000134487]  # Negative sign in serial port string, means robot moves forward
-thruster_1_max_force_positive: 95.122
-thruster_1_max_force_negative: 104.659
+thruster_1_max_force_positive: 90.0
+thruster_1_max_force_negative: 90.0
 
 # Thruster 2
 thruster_2_poly_positive: [0.0473235, 0.063145, -0.00256629, 0.000052432528, -0.00000050454768, 0.000000001842152]  # Positive sign in serial port string, means robot moves backwards
 thruster_2_poly_negative: [0.04997604, 0.05975017, -0.0022952, 0.0000439588388, -0.00000039543457, 0.00000000134487]  # Negative sign in serial port string, means robot moves forward
-thruster_2_max_force_positive: 95.122
-thruster_2_max_force_negative: 104.659
+thruster_2_max_force_positive: 90.0
+thruster_2_max_force_negative: 90.0
 
 # Thruster 3
 thruster_3_poly_positive: [0.0473235, 0.063145, -0.00256629, 0.000052432528, -0.00000050454768, 0.000000001842152]  # Positive sign in serial port string, means robot moves backwards
 thruster_3_poly_negative: [0.04997604, 0.05975017, -0.0022952, 0.0000439588388, -0.00000039543457, 0.00000000134487]  # Negative sign in serial port string, means robot moves forward
-thruster_3_max_force_positive: 95.122
-thruster_3_max_force_negative: 104.659
+thruster_3_max_force_positive: 90.0
+thruster_3_max_force_negative: 90.0
 
 # Thruster 4
 thruster_4_poly_positive: [0.0473235, 0.063145, -0.00256629, 0.000052432528, -0.00000050454768, 0.000000001842152]  # Positive sign in serial port string, means robot moves backwards
 thruster_4_poly_negative: [0.04997604, 0.05975017, -0.0022952, 0.0000439588388, -0.00000039543457, 0.00000000134487]  # Negative sign in serial port string, means robot moves forward
-thruster_4_max_force_positive: 95.122
-thruster_4_max_force_negative: 104.659
+thruster_4_max_force_positive: 90.0
+thruster_4_max_force_negative: 90.0
 
 # Thruster 5
 thruster_5_poly_positive: [0.0473235, 0.063145, -0.00256629, 0.000052432528, -0.00000050454768, 0.000000001842152]  # Positive sign in serial port string, means robot moves backwards
 thruster_5_poly_negative: [0.04997604, 0.05975017, -0.0022952, 0.0000439588388, -0.00000039543457, 0.00000000134487]  # Negative sign in serial port string, means robot moves forward
-thruster_5_max_force_positive: 95.122
-thruster_5_max_force_negative: 104.659
+thruster_5_max_force_positive: 90.0
+thruster_5_max_force_negative: 90.0
 
 # Enable thrusters
 enable_thrusters: false
@@ -56,11 +56,11 @@ set_zero_velocity_depth: 1.0
 set_zero_velocity_axes: [true, false, true, false, false, true]
 
 
-# Pose PID controller:
+# Pose PID
 # The following parameters adjust the proportional–integral–derivative
 # controllers for each degree of freedom (DOF). i_limit represents the maximum
 # value the integral part can take (anti-windup), and fff allows a feed-forward
-# force to be specified (sometimes useful for the heave controller)
+# force to be specified (sometimes useful for the heave
 p_surge_kp: 0.6
 p_surge_ti: 0.0
 p_surge_td: 0.0
@@ -98,8 +98,8 @@ p_yaw_i_limit: 0.0
 p_yaw_fff: 0.0
 
 
-# Twist (velocity) PID controller
-t_surge_kp: 1.2
+# Twist (velocity) PID t_surge_kp: 1.2
+t_surge_kp: 0.25
 t_surge_ti: 10.0
 t_surge_td: 0.0
 t_surge_i_limit: 0.15
@@ -163,9 +163,9 @@ poly_yaw_C: 80.0
 
 
 # Maximum wrench (force) for each DOF
-max_wrench_X: 210.0
-max_wrench_Y: 105.0
-max_wrench_Z: 210.0
+max_wrench_X: 200.0
+max_wrench_Y: 100.0
+max_wrench_Z: 200.0
 max_wrench_Roll: 0.0
 max_wrench_Pitch: 0.0
-max_wrench_Yaw: 46.267
+max_wrench_Yaw: 48.64

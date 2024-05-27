@@ -16,23 +16,22 @@ This node handles the data interchanged in acoustic communications, establishing
 
 **Publishers**:
 
-* /comms/custom_output [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
-* /comms/to_modem [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /navigator/usbl [[geometry_msgs/PoseWithCovarianceStamped](http://docs.ros.org/noetic/api/geometry_msgs/html/msg/PoseWithCovarianceStamped.html)]
+* /comms/custom_output [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
+* /comms/to_modem [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /navigator/usbl [[geometry_msgs/PoseWithCovarianceStamped](http://docs.ros.org/melodic/api/geometry_msgs/html/msg/PoseWithCovarianceStamped.html)]
 
 **Subscribers**:
 
-* /comms/custom_input [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
-* /comms/from_modem [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
-* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/NavSts.html)]
-* /safety_supervisor/status [[cola2_msgs/SafetySupervisorStatus](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/SafetySupervisorStatus.html)]
-* /watchdog_timer/elapsed_time [[std_msgs/Int32](http://docs.ros.org/noetic/api/std_msgs/html/msg/Int32.html)]
+* /comms/custom_input [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
+* /comms/from_modem [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
+* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/NavSts.html)]
+* /safety_supervisor/status [[cola2_msgs/SafetySupervisorStatus](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/SafetySupervisorStatus.html)]
+* /watchdog_timer/elapsed_time [[std_msgs/Int32](http://docs.ros.org/melodic/api/std_msgs/html/msg/Int32.html)]
 
 **Services**:
 
-* /comms/reload_params [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /comms/reset_recovery_action [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
+* /comms/reload_params [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
 
 **Parameters**:
 

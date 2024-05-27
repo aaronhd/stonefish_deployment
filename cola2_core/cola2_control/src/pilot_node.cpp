@@ -12,7 +12,6 @@
 #include <cola2_control/controllers/types.h>
 #include <cola2_lib/utils/ned.h>
 #include <cola2_lib_ros/diagnostic_helper.h>
-#include <cola2_lib_ros/navigation_helper.h>
 #include <cola2_lib_ros/param_loader.h>
 #include <cola2_lib_ros/this_node.h>
 #include <cola2_msgs/BodyVelocityReq.h>
@@ -23,17 +22,16 @@
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
 #include <visualization_msgs/Marker.h>
-
-#include <boost/bind.hpp>  // Because of the actionlib callback...
 #include <cstdint>
-#include <exception>
 #include <memory>
+#include <exception>
 #include <string>
 #include <vector>
+#include <boost/bind.hpp>  // Because of the actionlib callback...
 
 class Pilot
 {
-protected:
+ protected:
   // Node handle
   ros::NodeHandle nh_;
 
@@ -120,14 +118,17 @@ protected:
    */
   void publishGoal(const double, const double, const double) const;
 
-public:
+ public:
   /**
    * Class constructor
    */
   Pilot();
 };
 
-Pilot::Pilot() : nh_("~"), diagnostic_(nh_, "pilot", cola2::ros::getUnresolvedNodeName()), last_nav_received_(0.0)
+Pilot::Pilot()
+  : nh_("~")
+  , diagnostic_(nh_, "pilot", cola2::ros::getUnresolvedNodeName())
+  , last_nav_received_(0.0)
 {
   // Wait for time
   while (ros::Time::now().toSec() == 0.0)
@@ -141,18 +142,18 @@ Pilot::Pilot() : nh_("~"), diagnostic_(nh_, "pilot", cola2::ros::getUnresolvedNo
 
   // Initialize controllers
   section_controller_ = std::make_shared<SectionController>(config_.section_config);
-  holonomic_keep_position_controller_ =
-      std::make_shared<HolonomicKeepPositionController>(config_.holonomic_keep_position_config);
+  holonomic_keep_position_controller_ = std::make_shared<HolonomicKeepPositionController>(
+                                        config_.holonomic_keep_position_config);
   anchor_controller_ = std::make_shared<AnchorController>(config_.anchor_config);
 
   // Reload parameters service
   srv_reload_params_ = nh_.advertiseService("reload_params", &Pilot::reloadParamsCallback, this);
 
   // Publishers
-  pub_wwr_ =
-      nh_.advertise<cola2_msgs::WorldWaypointReq>(cola2::ros::getNamespace() + "/controller/world_waypoint_req", 1);
-  pub_bvr_ =
-      nh_.advertise<cola2_msgs::BodyVelocityReq>(cola2::ros::getNamespace() + "/controller/body_velocity_req", 1);
+  pub_wwr_ = nh_.advertise<cola2_msgs::WorldWaypointReq>(cola2::ros::getNamespace() +
+                                                         "/controller/world_waypoint_req", 1);
+  pub_bvr_ = nh_.advertise<cola2_msgs::BodyVelocityReq>(cola2::ros::getNamespace() +
+                                                        "/controller/body_velocity_req", 1);
   pub_marker_ = nh_.advertise<visualization_msgs::Marker>("waypoint_marker", 1);
   pub_goal_ = nh_.advertise<geometry_msgs::PointStamped>("goal", 1, true);
 
@@ -187,12 +188,6 @@ void Pilot::diagnosticsTimer(const ros::TimerEvent& event)
 
 void Pilot::navCallback(const cola2_msgs::NavSts& data)
 {
-  // Check for valid navigation
-  if (!cola2::ros::navigationIsValid(data))
-  {
-    return;
-  }
-
   // Obtain navigation data
   current_state_.pose.position.ned_origin_latitude = data.origin.latitude;
   current_state_.pose.position.ned_origin_longitude = data.origin.longitude;
@@ -292,10 +287,10 @@ void Pilot::pilotServerCallback(const cola2_msgs::PilotGoalConstPtr& data)
     cola2::utils::NED ned(current_state_.pose.position.ned_origin_latitude,
                           current_state_.pose.position.ned_origin_longitude, 0.0);
     double dummy_depth;
-    ned.geodetic2Ned(data->initial_latitude, data->initial_longitude, 0.0, request.initial_north, request.initial_east,
-                     dummy_depth);
-    ned.geodetic2Ned(data->final_latitude, data->final_longitude, 0.0, request.final_north, request.final_east,
-                     dummy_depth);
+    ned.geodetic2Ned(data->initial_latitude, data->initial_longitude, 0.0,
+                     request.initial_north, request.initial_east, dummy_depth);
+    ned.geodetic2Ned(data->final_latitude, data->final_longitude, 0.0,
+                     request.final_north, request.final_east, dummy_depth);
     request.ned_origin_latitude = current_state_.pose.position.ned_origin_latitude;
     request.ned_origin_longitude = current_state_.pose.position.ned_origin_longitude;
 
@@ -359,7 +354,8 @@ void Pilot::publishGoal(const double x, const double y, const double z) const
   pub_goal_.publish(goal);
 }
 
-void Pilot::publishControlCommands(const control::State& controller_output, const std::uint64_t priority,
+void Pilot::publishControlCommands(const control::State& controller_output,
+                                   const std::uint64_t priority,
                                    const ros::Time& now) const
 {
   // Create and publish world waypoint request

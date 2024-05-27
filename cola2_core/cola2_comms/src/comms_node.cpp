@@ -8,7 +8,6 @@
 #include <cola2_lib/comms/altitude.h>
 #include <cola2_lib/comms/elapsed_time.h>
 #include <cola2_lib_ros/diagnostic_helper.h>
-#include <cola2_lib_ros/navigation_helper.h>
 #include <cola2_lib_ros/param_loader.h>
 #include <cola2_lib_ros/this_node.h>
 #include <cola2_msgs/Mission.h>
@@ -22,11 +21,9 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/String.h>
 #include <std_srvs/Trigger.h>
-
 #include <cstdint>
 #include <ctime>
 #include <string>
-
 #include "cppystruct/cppystruct.h"
 
 namespace
@@ -81,25 +78,18 @@ private:
   ros::ServiceClient srv_start_mission_;  //!< service to call mission start
   ros::ServiceClient srv_reset_timeout_;  //!< service to reset vehicle timeout
   // ServiceServers
-  ros::ServiceServer srv_reload_params_;          //!< reload config of this node
-  ros::ServiceServer srv_reset_recovery_action_;  //!< reset recovery action to ok
+  ros::ServiceServer srv_reload_params_;  //!< reload config of this node
   // Timer
   ros::Timer timer_;  //!< timer to send messages to modem
 
   // Diagnostics
-  struct
-  {
-    double modem_time = 0.0;  //!< time since last message from modem
-    decltype(diagnostic_msgs::DiagnosticStatus::level) diagnostics_level =
-        diagnostic_msgs::DiagnosticStatus::OK;  //!< last level reported by the modem
-    decltype(cola2_msgs::RecoveryAction::error_level) recovery_action =
-        cola2_msgs::RecoveryAction::NONE;  //!< last recovery action called
-  } diagnostics_;
   cola2::ros::DiagnosticHelper diag_help_;  //!< to create diagnostics
 
   // Saves from callbacks
   std::string last_message_ = "";                         //!< last received message
+  double modem_time_ = 0.0;                               //!< time since last message from modem
   bool get_modem_time_ = false;                           //!< flag to know if modem_time_ must be updated
+  std::size_t last_diagnostics_level_ = 0;                //!< this stores the last level reported by the modem
   std::string custom_ = "";                               //!< custom extra message received
   double custom_time_ = ros::Time::now().toSec();         //!< time of last custom message
   uint32_t status_code_ = 0;                              //!< status code received
@@ -113,25 +103,14 @@ private:
    */
   bool loadParams();
 
-  // Servers
+  // Server to reload params
   /**
-   * \brief Service to reload the params of this node.
+   * \brief Service to reaload the params of this node.
    * \param req Request
    * \param res Response
    * \return Success on the param reloading
    */
   bool srvReloadParams(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
-
-  /**
-   * @brief Server to reset last_recovery_action to OK.
-   *
-   * Useful when aborting by modem and want to disable the abort once on surface with wifi connection.
-   *
-   * @param req
-   * @param res
-   * @return
-   */
-  bool srvResetRecoveryAction(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
   // Callbacks
   /**
@@ -182,7 +161,7 @@ CommsNode::CommsNode() : nh_("~"), diag_help_(nh_, "comms", cola2::ros::getUnres
   if (config_.usbl_safe_always_on)
   {
     get_modem_time_ = true;
-    diagnostics_.modem_time = ros::Time::now().toSec();
+    modem_time_ = ros::Time::now().toSec();
   }
 
   // Publishers
@@ -194,7 +173,6 @@ CommsNode::CommsNode() : nh_("~"), diag_help_(nh_, "comms", cola2::ros::getUnres
 
   // Init services
   srv_reload_params_ = nh_.advertiseService("reload_params", &CommsNode::srvReloadParams, this);
-  srv_reset_recovery_action_ = nh_.advertiseService("reset_recovery_action", &CommsNode::srvResetRecoveryAction, this);
 
   // Subscribers
   // clang-format off
@@ -270,15 +248,6 @@ bool CommsNode::srvReloadParams(std_srvs::Trigger::Request &, std_srvs::Trigger:
   res.success = loadParams();
   return res.success;
 }
-bool CommsNode::srvResetRecoveryAction(std_srvs::Trigger::Request &, std_srvs::Trigger::Response &res)
-{
-  diagnostics_.diagnostics_level = diagnostic_msgs::DiagnosticStatus::OK;
-  diagnostics_.recovery_action = cola2_msgs::RecoveryAction::NONE;
-  diagnostics_.modem_time = ros::Time::now().toSec();
-  res.success = true;
-  ROS_INFO("called srvResetRecoveryAction()");
-  return res.success;
-}
 
 void CommsNode::cbkFromModem(const std_msgs::String &msg)
 {
@@ -293,7 +262,7 @@ void CommsNode::cbkFromModem(const std_msgs::String &msg)
     return;
   }
   last_message_ = msg.data;
-  diagnostics_.modem_time = ros::Time::now().toSec();
+  modem_time_ = ros::Time::now().toSec();
   get_modem_time_ = true;  // from the first modem message, keep updating time for safety
 
   // Unpack basic message
@@ -305,9 +274,6 @@ void CommsNode::cbkFromModem(const std_msgs::String &msg)
   // If it comes from usbl
   if (id.compare(std::string("U")) == 0)
   {
-    // Correct reception
-    diag_help_.reportValidData();
-
     // If it is a valid message
     if ((tim != 0.0) && (lat != 0.0))
     {
@@ -319,56 +285,59 @@ void CommsNode::cbkFromModem(const std_msgs::String &msg)
       usbl.pose.pose.position.y = lon;
       usbl.pose.pose.position.z = depth;
       usbl.pose.covariance[0] = accuracy * accuracy;
-      usbl.pose.covariance[7] = usbl.pose.covariance[0];
-      usbl.pose.covariance[14] = usbl.pose.covariance[0];
+      usbl.pose.covariance[8] = usbl.pose.covariance[0];
+      usbl.pose.covariance[16] = usbl.pose.covariance[0];
       // Publish
       pub_usbl_.publish(usbl);
     }
     // Check the command
-    diagnostics_.recovery_action = cola2_msgs::RecoveryAction::NONE;
+    diag_help_.addKeyValue("modem_recovery_action", std::to_string(cola2_msgs::RecoveryAction::NONE));
+    diag_help_.setLevelAndMessage(diagnostic_msgs::DiagnosticStatus::OK);
+    last_diagnostics_level_ = diagnostic_msgs::DiagnosticStatus::OK;
     switch (command)
     {
       case cola2_msgs::RecoveryAction::NONE:
       {
-        diagnostics_.diagnostics_level = diagnostic_msgs::DiagnosticStatus::OK;
         break;
       }
       case cola2_msgs::RecoveryAction::INFORMATIVE:
       {
-        diagnostics_.diagnostics_level = diagnostic_msgs::DiagnosticStatus::OK;
         break;
       }
       case cola2_msgs::RecoveryAction::ABORT:
       {
-        diagnostics_.diagnostics_level = diagnostic_msgs::DiagnosticStatus::WARN;
-        diagnostics_.recovery_action = cola2_msgs::RecoveryAction::ABORT;
         ROS_WARN("Abort");
+        diag_help_.addKeyValue("modem_recovery_action", std::to_string(cola2_msgs::RecoveryAction::ABORT));
+        diag_help_.setLevelAndMessage(diagnostic_msgs::DiagnosticStatus::WARN);
+        last_diagnostics_level_ = diagnostic_msgs::DiagnosticStatus::WARN;
         break;
       }
       case cola2_msgs::RecoveryAction::ABORT_AND_SURFACE:
       {
-        diagnostics_.diagnostics_level = diagnostic_msgs::DiagnosticStatus::WARN;
-        diagnostics_.recovery_action = cola2_msgs::RecoveryAction::ABORT_AND_SURFACE;
         ROS_WARN("Abort and surface");
+        diag_help_.addKeyValue("modem_recovery_action", std::to_string(cola2_msgs::RecoveryAction::ABORT_AND_SURFACE));
+        diag_help_.setLevelAndMessage(diagnostic_msgs::DiagnosticStatus::WARN);
+        last_diagnostics_level_ = diagnostic_msgs::DiagnosticStatus::WARN;
         break;
       }
       case cola2_msgs::RecoveryAction::EMERGENCY_SURFACE:
       {
-        diagnostics_.diagnostics_level = diagnostic_msgs::DiagnosticStatus::WARN;
-        diagnostics_.recovery_action = cola2_msgs::RecoveryAction::EMERGENCY_SURFACE;
         ROS_WARN("Emergency surface");
+        diag_help_.addKeyValue("modem_recovery_action", std::to_string(cola2_msgs::RecoveryAction::EMERGENCY_SURFACE));
+        diag_help_.setLevelAndMessage(diagnostic_msgs::DiagnosticStatus::WARN);
+        last_diagnostics_level_ = diagnostic_msgs::DiagnosticStatus::WARN;
         break;
       }
       case cola2_msgs::RecoveryAction::DROP_WEIGHT:
       {
         ROS_WARN("Drop weight");
-        diagnostics_.diagnostics_level = diagnostic_msgs::DiagnosticStatus::WARN;
-        diagnostics_.recovery_action = cola2_msgs::RecoveryAction::DROP_WEIGHT;
+        diag_help_.addKeyValue("modem_recovery_action", std::to_string(cola2_msgs::RecoveryAction::DROP_WEIGHT));
+        diag_help_.setLevelAndMessage(diagnostic_msgs::DiagnosticStatus::WARN);
+        last_diagnostics_level_ = diagnostic_msgs::DiagnosticStatus::WARN;
         break;
       }
       case CustomCommands::START_MISSION:
       {
-        diagnostics_.diagnostics_level = diagnostic_msgs::DiagnosticStatus::OK;
         ROS_WARN("Start mission");
         cola2_msgs::MissionRequest req;
         cola2_msgs::MissionResponse res;
@@ -377,7 +346,6 @@ void CommsNode::cbkFromModem(const std_msgs::String &msg)
       }
       case CustomCommands::RESET_TIMEOUT:
       {
-        diagnostics_.diagnostics_level = diagnostic_msgs::DiagnosticStatus::OK;
         ROS_WARN("Reset timeout");
         std_srvs::Trigger trigger;
         srv_reset_timeout_.call(trigger);
@@ -389,6 +357,12 @@ void CommsNode::cbkFromModem(const std_msgs::String &msg)
       }
     }
   }
+
+  // Publish diagnostics
+  diag_help_.addKeyValue("last_modem_data", 0.0);
+  diag_help_.reportValidData();
+  diag_help_.setLevelAndMessage(diagnostic_msgs::DiagnosticStatus::OK);
+  diag_help_.publish();
 
   // Rest of message is custom message
   if (msg.data.size() > SIZE)
@@ -410,18 +384,12 @@ void CommsNode::cbkSafetyStatus(const cola2_msgs::SafetySupervisorStatus &msg)
 }
 void CommsNode::cbkNavigation(const cola2_msgs::NavSts &msg)
 {
-  // Check for valid navigation
-  if (!cola2::ros::navigationIsValid(msg))
-  {
-    return;
-  }
-
   navigation_ = msg;
   init_navigation_ = true;
   // Avoid modem errors when vehicle is on surface and we are updating modem_time_
   if (get_modem_time_ && (navigation_.position.depth < 1.0))
   {
-    diagnostics_.modem_time = ros::Time::now().toSec();
+    modem_time_ = ros::Time::now().toSec();
   }
 }
 
@@ -435,14 +403,6 @@ void CommsNode::sendMessage(const ros::TimerEvent &event)
   // Navigation available
   if (!init_navigation_)
   {
-    diag_help_.setLevelAndMessage(diagnostic_msgs::DiagnosticStatus::WARN, "navigation not init");
-    diag_help_.addKeyValue("modem_recovery_action", std::to_string(diagnostics_.recovery_action));
-    if (get_modem_time_)
-    {
-      const double tim = ros::Time::now().toSec();
-      diag_help_.addKeyValue("last_modem_data", tim - diagnostics_.modem_time);
-    }
-    diag_help_.publish();
     return;
   }
   // Encode altitude and elapsed time
@@ -476,11 +436,10 @@ void CommsNode::sendMessage(const ros::TimerEvent &event)
   if (get_modem_time_)
   {
     const double tim = ros::Time::now().toSec();
-    diag_help_.addKeyValue("last_modem_data", tim - diagnostics_.modem_time);
+    diag_help_.addKeyValue("last_modem_data", tim - modem_time_);
   }
 
-  diag_help_.setLevelAndMessage(diagnostics_.diagnostics_level);
-  diag_help_.addKeyValue("modem_recovery_action", std::to_string(diagnostics_.recovery_action));
+  diag_help_.setLevelAndMessage(last_diagnostics_level_);
   diag_help_.publish();
 }
 

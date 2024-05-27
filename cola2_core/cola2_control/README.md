@@ -16,48 +16,44 @@ This node provides automatic control actions including: goto a waypoint, keep po
 
 **Publishers**:
 
-* /captain/captain_status [[cola2_msgs/CaptainStatus](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/CaptainStatus.html)]
-* /captain/mission [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
-* /captain/state_feedback [[cola2_msgs/CaptainStateFeedback](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/CaptainStateFeedback.html)]
-* /captain/trajectory_path [[nav_msgs/Path](http://docs.ros.org/noetic/api/nav_msgs/html/msg/Path.html)]
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /input_to_teleoperation/output [[sensor_msgs/Joy](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Joy.html)]
+* /captain/captain_status [[cola2_msgs/CaptainStatus](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/CaptainStatus.html)]
+* /captain/state_feedback [[cola2_msgs/CaptainStateFeedback](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/CaptainStateFeedback.html)]
+* /captain/trajectory_path [[nav_msgs/Path](http://docs.ros.org/melodic/api/nav_msgs/html/msg/Path.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
 
 **Subscribers**:
 
-* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/NavSts.html)]
+* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/NavSts.html)]
 
 **Services**:
 
-* /captain/disable_all_and_set_idle [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/disable_all_keep_positions [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/disable_external_mission [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/disable_goto [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/disable_keep_position [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/disable_mission [[cola2_msgs/Mission](http://api.iquarobotics.com/202401/api/cola2_msgs/html/srv/Mission.html)]
-* /captain/disable_safety_keep_position [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/disable_section [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/enable_external_mission [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/enable_goto [[cola2_msgs/Goto](http://api.iquarobotics.com/202401/api/cola2_msgs/html/srv/Goto.html)]
-* /captain/enable_keep_position_holonomic [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/enable_keep_position_non_holonomic [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/enable_mission [[cola2_msgs/Mission](http://api.iquarobotics.com/202401/api/cola2_msgs/html/srv/Mission.html)]
-* /captain/enable_safety_keep_position [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/enable_section [[cola2_msgs/Section](http://api.iquarobotics.com/202401/api/cola2_msgs/html/srv/Section.html)]
-* /captain/pause_mission [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/reload_params [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/reset_keep_position [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /captain/resume_mission [[cola2_msgs/Mission](http://api.iquarobotics.com/202401/api/cola2_msgs/html/srv/Mission.html)]
+* /captain/disable_all_and_set_idle [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/disable_all_keep_positions [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/disable_external_mission [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/disable_goto [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/disable_keep_position [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/disable_mission [[cola2_msgs/Mission](http://api.iquarobotics.com/202010/api/cola2_msgs/html/srv/Mission.html)]
+* /captain/disable_safety_keep_position [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/disable_section [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/enable_external_mission [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/enable_goto [[cola2_msgs/Goto](http://api.iquarobotics.com/202010/api/cola2_msgs/html/srv/Goto.html)]
+* /captain/enable_keep_position_holonomic [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/enable_keep_position_non_holonomic [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/enable_mission [[cola2_msgs/Mission](http://api.iquarobotics.com/202010/api/cola2_msgs/html/srv/Mission.html)]
+* /captain/enable_safety_keep_position [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/enable_section [[cola2_msgs/Section](http://api.iquarobotics.com/202010/api/cola2_msgs/html/srv/Section.html)]
+* /captain/pause_mission [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/reload_params [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/reset_keep_position [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /captain/resume_mission [[cola2_msgs/Mission](http://api.iquarobotics.com/202010/api/cola2_msgs/html/srv/Mission.html)]
 
 **Parameters**:
 
+* /captain/controlled_surface_depth
 * /captain/disable_no_altitude_goes_up_service
 * /captain/enable_no_altitude_goes_up_service
 * /captain/idle_no_altitude_goes_up
 * /captain/max_distance_to_waypoint
-* /captain/reset_keep_position_on_navigation_jump
-* /captain/safety_keep_position_depth
-* /captain/safety_keep_position_goes_to_ned_origin
 * /captain/vehicle_config_launch_mission_package
 
 [//]: <> (captain end)
@@ -74,27 +70,27 @@ This node implements the pose and velocity low level controllers and the thruste
 
 **Publishers**:
 
-* /controller/merged_body_force_req [[cola2_msgs/BodyForceReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/BodyForceReq.html)]
-* /controller/merged_body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
-* /controller/merged_world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
-* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/Setpoints.html)]
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /controller/merged_body_force_req [[cola2_msgs/BodyForceReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/BodyForceReq.html)]
+* /controller/merged_body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
+* /controller/merged_world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
+* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/Setpoints.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
 
 **Subscribers**:
 
-* /controller/body_force_req [[cola2_msgs/BodyForceReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/BodyForceReq.html)]
-* /controller/body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
-* /controller/world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
-* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/NavSts.html)]
+* /controller/body_force_req [[cola2_msgs/BodyForceReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/BodyForceReq.html)]
+* /controller/body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
+* /controller/world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
+* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/NavSts.html)]
 
 **Services**:
 
-* /controller/disable_pose_controller [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /controller/disable_thrusters [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /controller/disable_velocity_controller [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /controller/enable_pose_controller [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /controller/enable_thrusters [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /controller/enable_velocity_controller [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
+* /controller/disable_pose_controller [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /controller/disable_thrusters [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /controller/disable_velocity_controller [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /controller/enable_pose_controller [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /controller/enable_thrusters [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /controller/enable_velocity_controller [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
 
 **Parameters**:
 
@@ -232,7 +228,7 @@ This node is used to drive the AUV from a unix terminal using keyboard commands.
 
 **Publishers**:
 
-* /joy [[sensor_msgs/Joy](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Joy.html)]
+* /joy [[sensor_msgs/Joy](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Joy.html)]
 
 **Subscribers**: None
 
@@ -257,13 +253,13 @@ This node converts sensor_msgs/Joy messages that come from the keyboard driver a
 
 **Publishers**:
 
-* /input_to_teleoperation/ack [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
-* /input_to_teleoperation/output [[sensor_msgs/Joy](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Joy.html)]
+* /input_to_teleoperation/ack [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
+* /input_to_teleoperation/output [[sensor_msgs/Joy](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Joy.html)]
 
 **Subscribers**:
 
-* /joy [[sensor_msgs/Joy](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Joy.html)]
-* /teleoperation/ack [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
+* /joy [[sensor_msgs/Joy](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Joy.html)]
+* /teleoperation/ack [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
 
 **Services**: None
 
@@ -285,13 +281,13 @@ This node converts sensor_msgs/Joy messages that come from the LogitechFX10 driv
 
 **Publishers**:
 
-* /input_to_teleoperation/ack [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
-* /input_to_teleoperation/output [[sensor_msgs/Joy](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Joy.html)]
+* /input_to_teleoperation/ack [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
+* /input_to_teleoperation/output [[sensor_msgs/Joy](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Joy.html)]
 
 **Subscribers**:
 
-* /joy [[sensor_msgs/Joy](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Joy.html)]
-* /teleoperation/ack [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
+* /joy [[sensor_msgs/Joy](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Joy.html)]
+* /teleoperation/ack [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
 
 **Services**: None
 
@@ -302,6 +298,32 @@ This node converts sensor_msgs/Joy messages that come from the LogitechFX10 driv
 * /logitech_fx10_to_teleoperation/stop_service
 
 [//]: <> (logitech_fx10_to_teleoperation end)
+
+[//]: <> (open_loop start)
+
+## open_loop
+
+**Node**: /open_loop
+
+This node directly generates thruster setpoints to guide the robot from joystick commands, bypassing the main components of the software architecture.
+
+![open_loop](doc/readme/open_loop.svg)
+
+**Publishers**:
+
+* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/Setpoints.html)]
+
+**Subscribers**:
+
+* /input_to_teleoperation/output [[sensor_msgs/Joy](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Joy.html)]
+
+**Services**: None
+
+
+**Parameters**: None
+
+
+[//]: <> (open_loop end)
 
 [//]: <> (pilot start)
 
@@ -315,19 +337,19 @@ This node implements different controllers that can be used by the captain node,
 
 **Publishers**:
 
-* /controller/body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
-* /controller/world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /pilot/goal [[geometry_msgs/PointStamped](http://docs.ros.org/noetic/api/geometry_msgs/html/msg/PointStamped.html)]
-* /pilot/waypoint_marker [[visualization_msgs/Marker](http://docs.ros.org/noetic/api/visualization_msgs/html/msg/Marker.html)]
+* /controller/body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
+* /controller/world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /pilot/goal [[geometry_msgs/PointStamped](http://docs.ros.org/melodic/api/geometry_msgs/html/msg/PointStamped.html)]
+* /pilot/waypoint_marker [[visualization_msgs/Marker](http://docs.ros.org/melodic/api/visualization_msgs/html/msg/Marker.html)]
 
 **Subscribers**:
 
-* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/NavSts.html)]
+* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/NavSts.html)]
 
 **Services**:
 
-* /pilot/reload_params [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
+* /pilot/reload_params [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
 
 **Parameters**:
 
@@ -355,25 +377,22 @@ This node takes the data coming from a joystick/keyboard device and generates a 
 
 **Publishers**:
 
-* /controller/body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
-* /controller/thruster_setpoints [[cola2_msgs/Setpoints](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/Setpoints.html)]
-* /controller/world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
-* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/noetic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
-* /teleoperation/ack [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
+* /controller/body_velocity_req [[cola2_msgs/BodyVelocityReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/BodyVelocityReq.html)]
+* /controller/world_waypoint_req [[cola2_msgs/WorldWaypointReq](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/WorldWaypointReq.html)]
+* /diagnostics [[diagnostic_msgs/DiagnosticArray](http://docs.ros.org/melodic/api/diagnostic_msgs/html/msg/DiagnosticArray.html)]
+* /teleoperation/ack [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
 
 **Subscribers**:
 
-* /input_to_teleoperation/ack [[std_msgs/String](http://docs.ros.org/noetic/api/std_msgs/html/msg/String.html)]
-* /input_to_teleoperation/output [[sensor_msgs/Joy](http://docs.ros.org/noetic/api/sensor_msgs/html/msg/Joy.html)]
-* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202401/api/cola2_msgs/html/msg/NavSts.html)]
+* /input_to_teleoperation/ack [[std_msgs/String](http://docs.ros.org/melodic/api/std_msgs/html/msg/String.html)]
+* /input_to_teleoperation/output [[sensor_msgs/Joy](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/Joy.html)]
+* /navigator/navigation [[cola2_msgs/NavSts](http://api.iquarobotics.com/202010/api/cola2_msgs/html/msg/NavSts.html)]
 
 **Services**:
 
-* /teleoperation/disable_thrusters [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /teleoperation/enable_thrusters [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /teleoperation/reload_params [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /teleoperation/set_joystick_axes_to_velocity [[std_srvs/Trigger](http://docs.ros.org/noetic/api/std_srvs/html/srv/Trigger.html)]
-* /teleoperation/set_max_joy_velocity [[cola2_msgs/MaxJoyVelocity](http://api.iquarobotics.com/202401/api/cola2_msgs/html/srv/MaxJoyVelocity.html)]
+* /teleoperation/reload_params [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /teleoperation/set_joystick_axes_to_velocity [[std_srvs/Trigger](http://docs.ros.org/melodic/api/std_srvs/html/srv/Trigger.html)]
+* /teleoperation/set_max_joy_velocity [[cola2_msgs/MaxJoyVelocity](http://api.iquarobotics.com/202010/api/cola2_msgs/html/srv/MaxJoyVelocity.html)]
 
 **Parameters**:
 

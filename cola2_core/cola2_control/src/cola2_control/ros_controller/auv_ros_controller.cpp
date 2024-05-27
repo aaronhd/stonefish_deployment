@@ -7,7 +7,6 @@
  */
 
 #include <cola2_control/ros_controller/auv_ros_controller_base.h>
-#include <cola2_lib_ros/navigation_helper.h>
 
 IAUVROSController::IAUVROSController(const std::string name, const std::string frame_id)
   : nh_("~")
@@ -15,7 +14,6 @@ IAUVROSController::IAUVROSController(const std::string name, const std::string f
   ,  // TODO: remove this
   frame_id_(frame_id)
   , diagnostic_(nh_, name, "soft")
-  , last_nav_time_(0.0)
   , last_altitude_(0.5)
   , last_altitude_age_(0.0)
   , last_depth_(0.0)
@@ -151,22 +149,6 @@ void IAUVROSController::timerCallback(const ros::TimerEvent& event)
   // Get current time
   ros::Time now = ros::Time::now();
 
-  // Check last navigation time
-  if (std::fabs(now.toSec() - last_nav_time_) > 1.0)
-  {
-    ROS_INFO_THROTTLE(5.0, "Waiting for navigation");
-    diagnostic_.reportData(event.current_real);
-
-    // Send zeros
-    Eigen::VectorXd setpoint(auv_controller_->getNumberofThrusters());
-    for (unsigned int i = 0; i < auv_controller_->getNumberofThrusters(); i++)
-    {
-      setpoint(i) = 0.0;
-    }
-    publishThrusterSetpoint(setpoint, now);
-    return;
-  }
-
   // Iterate controller
   auv_controller_->iteration(now.toSec());
 
@@ -187,29 +169,10 @@ void IAUVROSController::timerCallback(const ros::TimerEvent& event)
     Eigen::VectorXd setpoint = auv_controller_->getThrusterSetpoints();
     publishThrusterSetpoint(setpoint, now);
   }
-  else
-  {
-    // Send zeros
-    Eigen::VectorXd setpoint(auv_controller_->getNumberofThrusters());
-    for (unsigned int i = 0; i < auv_controller_->getNumberofThrusters(); i++)
-    {
-      setpoint(i) = 0.0;
-    }
-    publishThrusterSetpoint(setpoint, now);
-  }
 }
 
 void IAUVROSController::updateNav(const ros::MessageEvent<cola2_msgs::NavSts const>& msg)
 {
-  // Check for valid navigation
-  if (!cola2::ros::navigationIsValid(*msg.getMessage()))
-  {
-    return;
-  }
-
-  // Store last valid navigation time
-  last_nav_time_ = msg.getMessage()->header.stamp.toSec();
-
   // Update pose feedback
   std::vector<double> pose_feedback;
   pose_feedback.push_back(msg.getMessage()->position.north);
@@ -357,7 +320,7 @@ void IAUVROSController::updateBFR(const ros::MessageEvent<cola2_msgs::BodyForceR
 
 void IAUVROSController::publishThrusterSetpoint(const Eigen::VectorXd setpoint, const ros::Time now)
 {
-  // Create ROS thruster setpoint msg
+  // Cretae ROS thruster setpoint msg
   cola2_msgs::Setpoints output;
 
   // Fill header

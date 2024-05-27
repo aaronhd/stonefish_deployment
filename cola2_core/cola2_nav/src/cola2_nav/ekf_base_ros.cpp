@@ -6,9 +6,6 @@
  */
 
 #include "cola2_nav/ekf_base_ros.h"
-
-#include <cola2_lib_ros/navigation_helper.h>
-
 #include <cstdint>
 #include <string>
 
@@ -170,9 +167,9 @@ void EKFBaseROS::resetFilter()
   // Reset state vector
   x_ = Eigen::VectorXd::Zero(initial_state_vector_size_);
   // Reset covariance
-  assert(initial_state_vector_size_ <= config_.initial_state_covariance_.size());
-  Eigen::VectorXd p_var = Eigen::VectorXd::Zero(initial_state_vector_size_);
-  for (size_t i = 0; i < initial_state_vector_size_; ++i)
+  assert(initial_state_vector_size_ == config_.initial_state_covariance_.size());
+  Eigen::VectorXd p_var = Eigen::VectorXd::Zero(static_cast<unsigned int>(config_.initial_state_covariance_.size()));
+  for (size_t i = 0; i < config_.initial_state_covariance_.size(); ++i)
   {
     p_var(static_cast<unsigned int>(i)) = config_.initial_state_covariance_[i];
   }
@@ -221,6 +218,8 @@ Eigen::Vector3d EKFBaseROS::getPositionIncrementFrom(const double time) const
 
 std_srvs::TriggerResponse EKFBaseROS::getConfig(const bool show)
 {
+  double declination_deg;  // auxiliar
+
   // Load params from ROS param server
   Config temp_config;
   // Flags
@@ -240,7 +239,9 @@ std_srvs::TriggerResponse EKFBaseROS::getConfig(const bool show)
   ok &= cola2::ros::getParam("~surface_to_depth_sensor_distance", temp_config.surface2depth_sensor_distance_, 0.0);
   ok &= cola2::ros::getParam("~depth_sensor_offset", temp_config.depth_sensor_offset_, 0.0);
   // Sensors
+  ok &= cola2::ros::getParam("~declination_in_degrees", declination_deg, 0.0);
   ok &= cola2::ros::getParam("~dvl_max_v", temp_config.dvl_max_v_, 1.5);
+  temp_config.declination_ = cola2::utils::degreesToRadians(declination_deg);
   ok &= cola2::ros::getParam("~water_density", temp_config.water_density_, 1030.0);
   // DVL fallback
   ok &= cola2::ros::getParam("~dvl_fallback_delay", temp_config.dvl_fallback_delay_, 0.0);
@@ -267,6 +268,7 @@ std_srvs::TriggerResponse EKFBaseROS::getConfig(const bool show)
     ROS_INFO("init depth sensor offset: %d", temp_config.initialize_depth_sensor_offset_);
     ROS_INFO("    surface2depth sensor: %.3f", temp_config.surface2depth_sensor_distance_);
     ROS_INFO("     depth sensor offset: %.3f\n", temp_config.depth_sensor_offset_);
+    ROS_INFO("   declination deg: %.3f", declination_deg);
     ROS_INFO("  dvl max velocity: %.3f", temp_config.dvl_max_v_);
     ROS_INFO("dvl fallback delay: %.3f", temp_config.dvl_fallback_delay_);
     ROS_INFO("     water density: %.3f\n", temp_config.water_density_);
@@ -316,7 +318,7 @@ std_srvs::TriggerResponse EKFBaseROS::getConfig(const bool show)
 void EKFBaseROS::checkDiagnostics(const ros::TimerEvent& e)
 {
   // See if we are in init time
-  const bool init_time = (!init_ekf_) && ((e.current_real.toSec() - start_time_) < INIT_TIME_NO_WARNINGS);
+  const bool init_time = (e.current_real.toSec() - start_time_) < INIT_TIME_NO_WARNINGS;
 
   // *****************************************
   // Check sensors
@@ -476,11 +478,72 @@ void EKFBaseROS::updatePositionGPSMsg(const sensor_msgs::NavSatFix& msg)
 
 bool EKFBaseROS::updatePositionGPSMsgImpl(const sensor_msgs::NavSatFix& msg)
 {
-  // initial checks
-  bool process = false;
-  if ((msg.status.status >= msg.status.STATUS_FIX) && (msg.position_covariance[0] < 10.0))
+  // Check usage
+  if (!config_.use_gps_data_)
   {
-    process = true;
+    return false;
+  }
+  // Valid measurement
+  if ((msg.status.status >= msg.status.STATUS_FIX) && (msg.position_covariance[0] < 10.0))  // TODO: 10.0 --> 4.0
+  {
+    // Diagnostics
+    diag_help_.reportData();
+    // Increase number of received messages
+    ++gps_samples_;
+    last_gps_sample_time_ = msg.header.stamp.toSec();
+
+    // Continue if enough samples
+    if (gps_samples_ < static_cast<size_t>(config_.gps_samples_to_init_))
+    {
+      ROS_INFO("gps samples to init %zu/%d", gps_samples_, config_.gps_samples_to_init_);
+    }
+    else
+    {
+      // Init depth offset
+      if (!init_depth_offset_ && config_.initialize_depth_sensor_offset_)
+      {
+        std_srvs::Trigger::Request req;
+        std_srvs::Trigger::Response res;
+        srvSetDepthSensorOffset(req, res);
+        init_depth_offset_ = true;
+      }
+      // Construct measurement
+      const Eigen::Vector3d latlonh(msg.latitude, msg.longitude, 0.0);
+      Eigen::Vector3d ned = ned_.geodetic2Ned(latlonh);
+      Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
+      cov(0, 0) = msg.position_covariance[0];
+      cov(1, 1) = msg.position_covariance[4];
+      // Transform to vehicle frame
+      Eigen::Isometry3d trans;
+      if (!tf_handler_.getTransform(msg.header.frame_id, trans))
+      {
+        return false;  // not possible to transform
+      }
+      ned = transforms::position(ned, getOrientation(), trans.translation());
+      cov = transforms::positionCovariance(cov, getOrientationUncertainty(), getOrientation(), trans.translation());
+      // Publish GPS in NED frame
+      ned(2) = 0.0;
+      publishGPSNED(msg.header.stamp, ned);
+      // Predict and update
+      const double tim = msg.header.stamp.toSec();
+      if (makePrediction(tim) || !init_ekf_)
+      {
+        // Debug
+        if (config_.enable_debug_)
+        {
+          ofh_ << "#gps " << tim << ' ' << ned(0) << ' ' << ned(1) << ' ' << cov(0, 0) << ' ' << cov(0, 1) << ' '
+               << cov(1, 0) << ' ' << cov(1, 1) << '\n';
+        }
+        // Update and publish
+        const bool success = updatePositionXY(msg.header.stamp.toSec(), ned.head(2), cov.topLeftCorner(2, 2));
+        if (success)
+        {
+          last_gps_time_ = tim;
+        }
+        publishNavigation(msg.header.stamp);
+        return success;
+      }
+    }
   }
   else if (!init_ekf_ && config_.initialize_filter_from_gps_)
   {
@@ -495,91 +558,6 @@ bool EKFBaseROS::updatePositionGPSMsgImpl(const sensor_msgs::NavSatFix& msg)
       ROS_FATAL("Impossible to initialize filter with GPS");
     }
   }
-  else
-  {
-    // invalid measurement
-    return false;
-  }
-
-  // Always publish measurements
-  const Eigen::Vector3d latlonh(msg.latitude, msg.longitude, 0.0);
-  Eigen::Vector3d ned = ned_.geodetic2Ned(latlonh);
-  Eigen::Isometry3d trans;
-  if (!tf_handler_.getTransform(msg.header.frame_id, trans))
-  {
-    ROS_WARN("GPS update error. No tf for frame %s", msg.header.frame_id.c_str());
-    return false;  // not possible to transform
-  }
-  ned = transforms::position(ned, getOrientation(), trans.translation());
-  ned(2) = 0.0;  // water surface
-
-  // Check usage or continue with processing
-  if (!config_.use_gps_data_ || !process)
-  {
-    publishGPSNED(msg.header.stamp, ned, false);
-    return false;
-  }
-
-  // ===================
-  // Process update
-  // ===================
-  // Diagnostics
-  diag_help_.reportData();
-
-  // Increase number of received messages
-  ++gps_samples_;
-  last_gps_sample_time_ = msg.header.stamp.toSec();
-
-  // Not enough samples yet
-  if (gps_samples_ < static_cast<size_t>(config_.gps_samples_to_init_))
-  {
-    // Not enough samples yet
-    ROS_INFO("gps samples to init %zu/%d", gps_samples_, config_.gps_samples_to_init_);
-    publishGPSNED(msg.header.stamp, ned, false);
-    return false;
-  }
-
-  // Init depth offset
-  if (!init_depth_offset_ && config_.initialize_depth_sensor_offset_)
-  {
-    std_srvs::Trigger::Request req;
-    std_srvs::Trigger::Response res;
-    srvSetDepthSensorOffset(req, res);
-    init_depth_offset_ = true;
-  }
-
-  // Covariance
-  Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
-  cov(0, 0) = msg.position_covariance[0];
-  cov(1, 1) = msg.position_covariance[4];
-  cov = transforms::positionCovariance(cov, getOrientationUncertainty(), getOrientation(), trans.translation());
-
-  // Predict and update
-  const double tim = msg.header.stamp.toSec();
-  if (makePrediction(tim) || !init_ekf_)
-  {
-    // Debug
-    if (config_.enable_debug_)
-    {
-      ofh_ << "#gps " << tim << ' ' << ned(0) << ' ' << ned(1) << ' ' << cov(0, 0) << ' ' << cov(0, 1) << ' '
-           << cov(1, 0) << ' ' << cov(1, 1) << '\n';
-    }
-    // Update and publish
-    const bool success = updatePositionXY(msg.header.stamp.toSec(), ned.head(2), cov.topLeftCorner(2, 2));
-    if (success)
-    {
-      last_gps_time_ = tim;
-    }
-    else
-    {
-      ROS_WARN("GPS update rejected.");
-    }
-    publishGPSNED(msg.header.stamp, ned, success);
-    publishNavigation(msg.header.stamp);
-    return success;
-  }
-  // Did not predict
-  publishGPSNED(msg.header.stamp, ned, false);
   return false;
 }
 
@@ -590,97 +568,72 @@ void EKFBaseROS::updatePositionUSBLMsg(const geometry_msgs::PoseWithCovarianceSt
 
 bool EKFBaseROS::updatePositionUSBLMsgImpl(const geometry_msgs::PoseWithCovarianceStamped& msg)
 {
-  // Valid measurement
-  if (!init_ned_)
-  {
-    return false;
-  }
-
-  // USBL in NED frame
-  const Eigen::Vector3d latlonh(msg.pose.pose.position.x, msg.pose.pose.position.y, 0.0);
-  Eigen::Vector3d ned = ned_.geodetic2Ned(latlonh);
-
-  // IQUAview sends invalid
-  if (!cola2::ros::usblIsValid(msg))
-  {
-    publishUSBLNED(ros::Time::now(), { ned.x(), ned.y(), getPosition().z() }, USBLStatus::IQUAviewInvalid);
-    return false;
-  }
-
-  // Get delayed position increment [dt dx dy]
-  const Eigen::Vector3d position_increment = getPositionIncrementFrom(msg.header.stamp.toSec());
-  if (!init_ekf_ || position_increment(0) < 0.0)
-  {
-    // Cannot find it in buffer, publish raw
-    publishUSBLNED(ros::Time::now(), { ned.x(), ned.y(), getPosition().z() }, USBLStatus::OutOfBuffer);
-    return false;
-  }
-
-  // Current time measurement
-  const ros::Time current_time(msg.header.stamp.toSec() + position_increment(0));
-
-  // Transform to vehicle frame
-  Eigen::Isometry3d trans;
-  if (!tf_handler_.getTransform(msg.header.frame_id, trans))
-  {
-    ROS_WARN("USBL update error. No tf for frame %s", msg.header.frame_id.c_str());
-    return false;  // not possible to transform
-  }
-  ned.head(2) += position_increment.tail(2);  // increment the same we increased
-  ned = transforms::position(ned, getOrientation(), trans.translation());
-
   // Check usage
   if (!config_.use_usbl_data_)
   {
-    publishUSBLNED(current_time, { ned.x(), ned.y(), getPosition().z() }, USBLStatus::NotUpdated);
     return false;
   }
-
-  // Diagnostics
-  diag_help_.reportData();
-
-  // Covariance
-  Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
-  for (unsigned int i = 0; i < 3; ++i)
+  // Valid measurement
+  // TODO: maybe able to initialize filter from USBL?
+  if (init_ned_ && init_ekf_)
   {
-    for (unsigned int j = 0; j < 3; ++j)
+    // Diagnostics
+    diag_help_.reportData();
+    // Get delayed position increment [dt dx dy]
+    const Eigen::Vector3d position_increment = getPositionIncrementFrom(msg.header.stamp.toSec());
+    // Valid time increment
+    if (position_increment(0) >= 0.0)
     {
-      cov(i, j) = msg.pose.covariance[6 * i + j];  // from 6x6 matrix
+      // Current time
+      const ros::Time current_time(msg.header.stamp.toSec() + position_increment(0));
+      // Construct measurement
+      const Eigen::Vector3d latlonh(msg.pose.pose.position.x, msg.pose.pose.position.y, 0.0);
+      Eigen::Vector3d ned = ned_.geodetic2Ned(latlonh);
+      ned.head(2) += position_increment.tail(2);  // increment the same we increased
+      Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
+      for (unsigned int i = 0; i < 3; ++i)
+      {
+        for (unsigned int j = 0; j < 3; ++j)
+        {
+          cov(i, j) = msg.pose.covariance[6 * i + j];  // from 6x6 matrix
+        }
+      }
+      cov(0, 0) = 10.0;  // TODO: correct covariance from iquaview
+      cov(1, 1) = 10.0;
+      cov(2, 2) = 10.0;
+      // Transform to vehicle frame
+      Eigen::Isometry3d trans;
+      if (!tf_handler_.getTransform(msg.header.frame_id, trans))
+      {
+        return false;  // not possible to transform
+      }
+      ned = transforms::position(ned, getOrientation(), trans.translation());
+      cov = transforms::positionCovariance(cov, getOrientationUncertainty(), getOrientation(), trans.translation());
+      // Publish USBL in NED frame
+      ned(2) = getPosition()(2);          // show in current depth
+      publishUSBLNED(current_time, ned);  // show
+      // Predict and update
+      const double tim = current_time.toSec();
+      if (makePrediction(tim))
+      {
+        // Debug
+        if (config_.enable_debug_)
+        {
+          ofh_ << "#usbl " << tim << ' ' << ned(0) << ' ' << ned(1) << ' ' << cov(0, 0) << ' ' << cov(0, 1) << ' '
+               << cov(1, 0) << ' ' << cov(1, 1) << '\n';
+        }
+        // Update and publish
+        const bool success = updatePositionXY(tim, ned.head(2), cov.topLeftCorner(2, 2));
+        if (success)
+        {
+          last_usbl_positions_.clear();  // clear history
+          last_usbl_time_ = tim;
+        }
+        publishNavigation(current_time);
+        return success;
+      }
     }
   }
-  cov(0, 0) = 10.0;  // TODO: correct covariance from iquaview
-  cov(1, 1) = 10.0;
-  cov(2, 2) = 10.0;
-  cov = transforms::positionCovariance(cov, getOrientationUncertainty(), getOrientation(), trans.translation());
-
-  // Predict and update
-  const double tim = current_time.toSec();
-  if (makePrediction(tim))
-  {
-    // Debug
-    if (config_.enable_debug_)
-    {
-      ofh_ << "#usbl " << tim << ' ' << ned(0) << ' ' << ned(1) << ' ' << cov(0, 0) << ' ' << cov(0, 1) << ' '
-           << cov(1, 0) << ' ' << cov(1, 1) << '\n';
-    }
-    // Update and publish
-    const bool success = updatePositionXY(tim, ned.head(2), cov.topLeftCorner(2, 2));
-    if (success)
-    {
-      last_usbl_positions_.clear();  // clear history
-      last_usbl_time_ = tim;
-      publishUSBLNED(current_time, { ned.x(), ned.y(), getPosition().z() }, USBLStatus::Updated);
-    }
-    else
-    {
-      ROS_WARN("USBL position update rejected.");
-      publishUSBLNED(current_time, { ned.x(), ned.y(), getPosition().z() }, USBLStatus::NotUpdated);
-    }
-    publishNavigation(current_time);
-    return success;
-  }
-  // Did not predict
-  publishUSBLNED(current_time, { ned.x(), ned.y(), getPosition().z() }, USBLStatus::NotUpdated);
   return false;
 }
 
@@ -705,7 +658,6 @@ void EKFBaseROS::updatePositionDepthMsg(const sensor_msgs::FluidPressure& msg)
     Eigen::Isometry3d trans;
     if (!tf_handler_.getTransform(msg.header.frame_id, trans))
     {
-      ROS_WARN("Depth update error. No tf for frame %s", msg.header.frame_id.c_str());
       return;  // not possible to transform
     }
     xyz = transforms::position(xyz, getOrientation(), trans.translation());
@@ -723,10 +675,6 @@ void EKFBaseROS::updatePositionDepthMsg(const sensor_msgs::FluidPressure& msg)
       if (updatePositionZ(msg.header.stamp.toSec(), xyz.tail(1), cov.bottomRightCorner(1, 1)))
       {
         last_depth_time_ = tim;
-      }
-      else
-      {
-        ROS_WARN("Depth update rejected.");
       }
       publishNavigation(msg.header.stamp);
     }
@@ -762,7 +710,6 @@ void EKFBaseROS::updateVelocityDVLMsgImpl(const cola2_msgs::DVL& msg, const bool
     Eigen::Isometry3d trans;
     if (!tf_handler_.getTransform(msg.header.frame_id, trans))
     {
-      ROS_WARN("DVL update error. No tf for frame %s", msg.header.frame_id.c_str());
       return;  // not possible to transform
     }
     const Eigen::Quaterniond quat(trans.rotation());
@@ -789,14 +736,9 @@ void EKFBaseROS::updateVelocityDVLMsgImpl(const cola2_msgs::DVL& msg, const bool
         }
       }
       // Update and publish
-      bool updated = updateVelocity(msg.header.stamp.toSec(), vel, cov);
-      if (from_dvl && updated)
+      if (from_dvl && updateVelocity(msg.header.stamp.toSec(), vel, cov))
       {
         last_dvl_time_ = tim;
-      }
-      if (!updated)
-      {
-        ROS_WARN("%s update rejected.", (from_dvl ? "DVL" : "Velocity"));
       }
       publishNavigation(msg.header.stamp);
     }
@@ -827,6 +769,9 @@ void EKFBaseROS::updateIMUMsg(const sensor_msgs::Imu& msg)
   diag_help_.reportData();
   // Construct measurement
   Eigen::Quaterniond ori(msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z);
+  Eigen::Vector3d rpy = cola2::utils::quaternion2euler(ori);
+  rpy(2) = cola2::utils::wrapAngle(rpy(2) + config_.declination_);  // add declination
+  ori = cola2::utils::euler2quaternion(rpy);
   Eigen::Vector3d ang_vel(msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z);
   Eigen::Matrix3d rpy_cov;
   Eigen::Matrix3d ang_vel_cov;
@@ -842,12 +787,11 @@ void EKFBaseROS::updateIMUMsg(const sensor_msgs::Imu& msg)
   Eigen::Isometry3d trans;
   if (!tf_handler_.getTransform(msg.header.frame_id, trans))
   {
-    ROS_WARN("IMU update error. No tf for frame %s", msg.header.frame_id.c_str());
     return;  // not possible to transform
   }
   Eigen::Quaterniond quat(trans.rotation());
   ori = transforms::orientation(ori, quat);  // transform orientation
-  const Eigen::Vector3d rpy = cola2::utils::quaternion2euler(ori);
+  rpy = cola2::utils::quaternion2euler(ori);
   ang_vel = transforms::angularVelocity(ang_vel, quat);  // transform angular velocity
   // Predict and update
   const double tim = msg.header.stamp.toSec();
@@ -869,14 +813,7 @@ void EKFBaseROS::updateIMUMsg(const sensor_msgs::Imu& msg)
     {
       last_imu_time_ = tim;
     }
-    else
-    {
-      ROS_WARN("IMU update rejected.");
-    }
-    if (!updateOrientationRate(msg.header.stamp.toSec(), ang_vel, ang_vel_cov))
-    {
-      ROS_WARN("IMU orientation rate update rejected.");
-    }
+    updateOrientationRate(msg.header.stamp.toSec(), ang_vel, ang_vel_cov);
     publishNavigation(msg.header.stamp);
   }
 }
@@ -981,13 +918,6 @@ void EKFBaseROS::publishNavigation(const ros::Time& stamp)
   }
   last_publication_time_ = stamp.toSec();  // now is the last time
 
-  // If not init, just publish invalid navigation
-  if (!init_ekf_)
-  {
-    pub_nav_.publish(cola2::ros::createInvalidNavigation());
-    return;  // nothing else to do
-  }
-
   // Publish Odometry message
   nav_msgs::Odometry odom;
   odom.header.frame_id = frame_world_;
@@ -1057,7 +987,7 @@ void EKFBaseROS::publishNavigation(const ros::Time& stamp)
   tf_broadcast_.sendTransform(tf::StampedTransform(tf_vehicle, stamp, frame_world_, frame_vehicle_));
 }
 
-void EKFBaseROS::publishGPSNED(const ros::Time& stamp, const Eigen::Vector3d& ned, const bool& valid) const
+void EKFBaseROS::publishGPSNED(const ros::Time& stamp, const Eigen::Vector3d& ned) const
 {
   // Don't do anything if offline
   if (!online_)
@@ -1071,27 +1001,14 @@ void EKFBaseROS::publishGPSNED(const ros::Time& stamp, const Eigen::Vector3d& ne
   msg.pose.position.x = ned(0);
   msg.pose.position.y = ned(1);
   msg.pose.position.z = 0.0;
-  if (valid)
-  {
-    // pointing like the vehicle
-    const Eigen::Quaterniond q = getOrientation();
-    msg.pose.orientation.x = q.x();
-    msg.pose.orientation.y = q.y();
-    msg.pose.orientation.z = q.z();
-    msg.pose.orientation.w = q.w();
-  }
-  else
-  {
-    // pointing upwards
-    msg.pose.orientation.x = 0.0;
-    msg.pose.orientation.y = 0.70710678;
-    msg.pose.orientation.z = 0.0;
-    msg.pose.orientation.w = 0.70710678;
-  }
+  msg.pose.orientation.x = 0.0;  // pointing upwards
+  msg.pose.orientation.y = 0.70710678;
+  msg.pose.orientation.z = 0.0;
+  msg.pose.orientation.w = 0.70710678;
   pub_gps_ned_.publish(msg);
 }
 
-void EKFBaseROS::publishUSBLNED(const ros::Time& stamp, const Eigen::Vector3d& ned, const USBLStatus& status) const
+void EKFBaseROS::publishUSBLNED(const ros::Time& stamp, const Eigen::Vector3d& ned) const
 {
   // Don't do anything if offline
   if (!online_)
@@ -1105,33 +1022,10 @@ void EKFBaseROS::publishUSBLNED(const ros::Time& stamp, const Eigen::Vector3d& n
   msg.pose.position.x = ned(0);
   msg.pose.position.y = ned(1);
   msg.pose.position.z = ned(2);
-  switch (status)
-  {
-    case USBLStatus::OutOfBuffer:
-      [[fallthrough]];
-    case USBLStatus::IQUAviewInvalid:
-      // pointing downwards
-      msg.pose.orientation.x = 0.0;
-      msg.pose.orientation.y = 0.70710678;
-      msg.pose.orientation.z = 0.0;
-      msg.pose.orientation.w = -0.70710678;
-      break;
-    case USBLStatus::NotUpdated:
-      // pointing upwards
-      msg.pose.orientation.x = 0.0;
-      msg.pose.orientation.y = 0.70710678;
-      msg.pose.orientation.z = 0.0;
-      msg.pose.orientation.w = 0.70710678;
-      break;
-    case USBLStatus::Updated:
-      // pointing like the vehicle
-      const Eigen::Quaterniond q = getOrientation();
-      msg.pose.orientation.x = q.x();
-      msg.pose.orientation.y = q.y();
-      msg.pose.orientation.z = q.z();
-      msg.pose.orientation.w = q.w();
-      break;
-  }
+  msg.pose.orientation.x = 0.0;  // pointing upwards
+  msg.pose.orientation.y = 0.70710678;
+  msg.pose.orientation.z = 0.0;
+  msg.pose.orientation.w = 0.70710678;
   pub_usbl_ned_.publish(msg);
 }
 
@@ -1214,9 +1108,4 @@ bool EKFBaseROS::srvSetDepthSensorOffset(std_srvs::Trigger::Request&, std_srvs::
   res.message = temp;
   ROS_INFO("%s", res.message.c_str());
   return true;
-}
-
-double EKFBaseROS::getAltitude() const
-{
-  return altitude_;
 }

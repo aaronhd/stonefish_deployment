@@ -20,5 +20,7 @@
   <node name="logitech_fx10_to_teleoperation" pkg="cola2_control" type="logitech_fx10_to_teleoperation_node.py" output="screen"/>
   <!-- teleoperation -->
   <rosparam ns="teleoperation" command="load" file="$(find cola2_control)/config/teleoperation.yaml"/>
-  <node name="teleoperation" pkg="cola2_control" type="teleoperation_node" output="screen"/>
+  <node name="teleoperation" pkg="cola2_control" type="teleoperation_node.py" output="screen"/>
+  <!-- open_loop -->
+  <node name="open_loop" pkg="cola2_control" type="open_loop_node" output="screen"/>
 </launch>

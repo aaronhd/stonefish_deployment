@@ -10,9 +10,4 @@
     </node>
     <!-- param logger -->
     <node name="param_logger" pkg="cola2_log" type="param_logger_node.py" output="screen"/>
-    <!-- cola2 version -->
-    <node name="cola2_version" pkg="cola2_log" type="cola2_version_node.py" output="screen"/>
-    <!-- mission reporter -->
-    <rosparam ns="mission_reporter" command="load" file="$(find cola2_log)/config/mission_reporter.yaml"/>
-    <node name="mission_reporter" pkg="cola2_log" type="mission_reporter" output="screen"/>
 </launch>

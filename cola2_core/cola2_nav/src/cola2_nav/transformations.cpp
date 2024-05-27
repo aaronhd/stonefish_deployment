@@ -6,7 +6,6 @@
  */
 
 #include "cola2_nav/transformations.h"
-
 #include <cola2_lib/utils/angles.h>
 
 namespace transforms
@@ -44,10 +43,7 @@ Eigen::Quaterniond orientation(const Eigen::Quaterniond& measured_orientation,
                                const Eigen::Quaterniond& rotation_from_origin)
 {
   // z = rotation * zk
-  // measured_orientation is world2imu
-  // rotation_from_origin in robot2imu
-  return Eigen::Quaterniond(measured_orientation.toRotationMatrix() *
-                            rotation_from_origin.toRotationMatrix().transpose());
+  return rotation_from_origin * measured_orientation;
 }
 
 Eigen::Matrix3d orientationCovariance(const Eigen::Matrix3d& measured_orientation_covariance,

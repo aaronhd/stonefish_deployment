@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Iqua Robotics SL - All Rights Reserved
+ * Copyright (c) 2020 Iqua Robotics SL - All Rights Reserved
  *
  * This file is subject to the terms and conditions defined in file
  * 'LICENSE.txt', which is part of this source code package.
@@ -12,7 +12,6 @@
 #include <cola2_lib/utils/filesystem.h>
 #include <cola2_lib/utils/ned.h>
 #include <cola2_lib_ros/diagnostic_helper.h>
-#include <cola2_lib_ros/navigation_helper.h>
 #include <cola2_lib_ros/param_loader.h>
 #include <cola2_lib_ros/serviceclient_helper.h>
 #include <cola2_lib_ros/this_node.h>
@@ -25,24 +24,17 @@
 #include <cola2_msgs/Mission.h>
 #include <cola2_msgs/MissionState.h>
 #include <cola2_msgs/NavSts.h>
-#include <cola2_msgs/PilotAction.h>
 #include <cola2_msgs/Section.h>
+#include <cola2_msgs/PilotAction.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Path.h>
 #include <ros/console.h>
 #include <ros/package.h>
 #include <ros/ros.h>
-#include <sensor_msgs/Joy.h>
-#include <std_msgs/String.h>
 #include <std_srvs/Trigger.h>
-
 #include <algorithm>
-#include <boost/make_shared.hpp>
-#include <boost/shared_ptr.hpp>
 #include <cstdint>
 #include <exception>
-#include <fstream>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <numeric>
@@ -51,6 +43,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
 // Helper functions to modify the key-value list
 void setKeyValue(cola2_msgs::CaptainStateFeedback* feedback, const std::string& key, const std::string& value)
@@ -74,15 +68,13 @@ void setKeyValue(cola2_msgs::CaptainStateFeedback* feedback, const std::string& 
  */
 class Captain
 {
-protected:
+ protected:
   // ROS
   ros::NodeHandle nh_;
   ros::Subscriber sub_nav_;
   ros::Publisher pub_path_;
   ros::Publisher pub_captain_status_;
   ros::Publisher pub_captain_state_feedback_;
-  ros::Publisher pub_mission_str_;
-  ros::Publisher pub_joy_;
   ros::ServiceServer enable_goto_srv_;
   ros::ServiceServer disable_goto_srv_;
   ros::ServiceServer enable_section_srv_;
@@ -178,9 +170,7 @@ protected:
   struct
   {
     double max_distance_to_waypoint;
-    double safety_keep_position_depth;
-    bool safety_keep_position_goes_to_ned_origin;
-    bool reset_keep_position_on_navigation_jump;
+    double controlled_surface_depth;
     double pilot_section_max_surge_velocity;
     double controller_max_velocity_z;
     std::string vehicle_config_launch_mission_package;
@@ -202,11 +192,6 @@ protected:
    * \param[in] Safe depth altitude service wait time
    */
   void updateNoAltitudeGoesUpIdle(const double wait_time = 1.0);
-
-  /**
-   * \brief This method publishes a Joy message to disable teleoperation pose controllers.
-   */
-  void disableTeleoperationPoseControllers();
 
   /**
    * \brief Waits for the actionlib to become ready
@@ -506,7 +491,7 @@ protected:
    */
   bool getConfig();
 
-public:
+ public:
   /**
    * \brief Class constructor
    */
@@ -562,8 +547,6 @@ Captain::Captain()
   pub_path_ = nh_.advertise<nav_msgs::Path>("trajectory_path", 1, true);
   pub_captain_status_ = nh_.advertise<cola2_msgs::CaptainStatus>("captain_status", 1, true);
   pub_captain_state_feedback_ = nh_.advertise<cola2_msgs::CaptainStateFeedback>("state_feedback", 1, true);
-  pub_mission_str_ = nh_.advertise<std_msgs::String>("mission", 1, true);
-  pub_joy_ = nh_.advertise<sensor_msgs::Joy>(cola2::ros::getNamespace() + "/input_to_teleoperation/output", 10);
 
   // Subscribers
   sub_nav_ = nh_.subscribe(cola2::ros::getNamespace() + "/navigator/navigation", 1, &Captain::updateNav, this);
@@ -593,7 +576,8 @@ Captain::Captain()
       nh_.advertiseService("enable_external_mission", &Captain::enableExternalMissionSrv, this);
   disable_external_mission_srv_ =
       nh_.advertiseService("disable_external_mission", &Captain::disableExternalMissionSrv, this);
-  disable_all_and_set_idle_ = nh_.advertiseService("disable_all_and_set_idle", &Captain::disableAllAndSetIdleSrv, this);
+  disable_all_and_set_idle_ = nh_.advertiseService("disable_all_and_set_idle",
+      &Captain::disableAllAndSetIdleSrv, this);
   srv_reload_params_ = nh_.advertiseService("reload_params", &Captain::reloadParamsCallback, this);
 
   // Service client to publish parameters
@@ -625,7 +609,8 @@ Captain::~Captain()
   cancelPilotActionlib();
 }
 
-void Captain::updateNoAltitudeGoesUp(const bool no_altitude_goes_up, const double wait_time)
+void
+Captain::updateNoAltitudeGoesUp(const bool no_altitude_goes_up, const double wait_time)
 {
   if (no_altitude_goes_up)
   {
@@ -637,20 +622,10 @@ void Captain::updateNoAltitudeGoesUp(const bool no_altitude_goes_up, const doubl
   }
 }
 
-void Captain::updateNoAltitudeGoesUpIdle(const double wait_time)
+void
+Captain::updateNoAltitudeGoesUpIdle(const double wait_time)
 {
   updateNoAltitudeGoesUp(config_.idle_no_altitude_goes_up, wait_time);
-}
-
-void Captain::disableTeleoperationPoseControllers()
-{
-  sensor_msgs::Joy joy_msg;
-  joy_msg.header.stamp = ros::Time::now();
-  joy_msg.header.frame_id = "captain";
-  joy_msg.axes.resize(12, 0.0);
-  joy_msg.buttons.resize(6, false);
-  joy_msg.buttons.resize(12, true);
-  pub_joy_.publish(joy_msg);
 }
 
 template <typename T>
@@ -681,8 +656,8 @@ bool Captain::callTriggerService(const std::string& srv_name, const double timeo
   {
     std_srvs::Trigger::Request req;
     std_srvs::Trigger::Response res;
-    const bool success =
-        cola2::ros::callServiceWithTimeout<std_srvs::Trigger>(nh_, req, res, srv_name, timeout, wait_time);
+    const bool success = cola2::ros::callServiceWithTimeout<std_srvs::Trigger>(nh_, req, res, srv_name, timeout,
+                                                                               wait_time);
     if (!success)
     {
       ROS_ERROR_STREAM("Trigger service " << srv_name << " call failed");
@@ -720,12 +695,6 @@ void Captain::cancelPilotActionlib()
 
 void Captain::updateNav(const cola2_msgs::NavSts& nav_msg)
 {
-  // Check for valid navigation
-  if (!cola2::ros::navigationIsValid(nav_msg))
-  {
-    return;
-  }
-
   // Store navigation data
   nav_ = nav_msg;
   last_nav_received_ = ros::Time::now().toSec();
@@ -744,17 +713,14 @@ void Captain::updateNav(const cola2_msgs::NavSts& nav_msg)
                                   std::pow(nav_.position.east - position_checking_east_, 2));
     if (dist > 10.0)  // TODO: Param? Maybe not, as it is going to be one of those that is never changed
     {
-      ROS_WARN_STREAM("Detected a sudden jump in the navigation position of " << dist
-                                                                              << " meters in less than one second");
-      if (config_.reset_keep_position_on_navigation_jump)
-      {
-        auto req_ptr = boost::make_shared<std_srvs::Trigger::Request>();
-        auto res_ptr = boost::make_shared<std_srvs::Trigger::Response>();
-        boost::shared_ptr<std::map<std::string, std::string>> ch_ptr(
-            new std::map<std::string, std::string>({ { "callerid", "captain" } }));
-        ros::ServiceEvent<std_srvs::Trigger::Request, std_srvs::Trigger::Response> event(req_ptr, res_ptr, ch_ptr);
-        resetKeepPositionSrv(event);
-      }
+      ROS_WARN_STREAM("Detected a sudden jump in the navigation position of " << dist <<
+                      " meters in less than one second");
+      auto req_ptr = boost::make_shared<std_srvs::Trigger::Request>();
+      auto res_ptr = boost::make_shared<std_srvs::Trigger::Response>();
+      boost::shared_ptr<std::map<std::string, std::string>> ch_ptr(
+                new std::map<std::string, std::string>({{"callerid", "captain"}}));
+      ros::ServiceEvent<std_srvs::Trigger::Request, std_srvs::Trigger::Response> event(req_ptr, res_ptr, ch_ptr);
+      resetKeepPositionSrv(event);
     }
     position_checking_north_ = nav_.position.north;
     position_checking_east_ = nav_.position.east;
@@ -764,10 +730,12 @@ void Captain::updateNav(const cola2_msgs::NavSts& nav_msg)
 
 void Captain::diagnosticsTimer(const ros::TimerEvent& event)
 {
-  const bool keep_position_enabled =
-      (state_ == CaptainStates::KeepPosition) || (state_ == CaptainStates::SafetyKeepPosition);
-  const bool trajectory_enabled = (state_ == CaptainStates::Goto) || (state_ == CaptainStates::Section) ||
-                                  (state_ == CaptainStates::Mission) || (state_ == CaptainStates::ExternalMission);
+  const bool keep_position_enabled = (state_ == CaptainStates::KeepPosition) ||
+                                     (state_ == CaptainStates::SafetyKeepPosition);
+  const bool trajectory_enabled = (state_ == CaptainStates::Goto) ||
+                                  (state_ == CaptainStates::Section) ||
+                                  (state_ == CaptainStates::Mission) ||
+                                  (state_ == CaptainStates::ExternalMission);
   diagnostic_.addKeyValue("keep_position_enabled", keep_position_enabled);
   diagnostic_.addKeyValue("trajectory_enabled", trajectory_enabled);
   diagnostic_.setLevelAndMessage(diagnostic_msgs::DiagnosticStatus::OK);
@@ -830,7 +798,7 @@ void Captain::mainIteration()
     mission();
     if (missionHasFinished())
     {
-      ROS_INFO_STREAM("Mission finalized: " << last_running_mission_);
+      ROS_INFO_STREAM("Mission finalized");
       state_ = CaptainStates::Idle;
       updateNoAltitudeGoesUpIdle();
       deleteLoadedMission(last_running_mission_);
@@ -952,10 +920,10 @@ std::string Captain::getDefaultMissionName()
     ROS_ERROR_STREAM("Error defining mission package path");
     return output;
   }
-  const std::string mission_path = package_path + "/missions/default_mission.xml";
+  const std::string mission_path = package_path + "/missions/last_mission.xml";
   if (!cola2::utils::isFileAccessible(mission_path))
   {
-    ROS_ERROR_STREAM("Default mission path not accessible");
+    ROS_ERROR_STREAM("Last mission path not accessible");
     return output;
   }
   if (cola2::utils::isSymlink(mission_path))
@@ -964,7 +932,7 @@ std::string Captain::getDefaultMissionName()
   }
   else
   {
-    output = "default_mission.xml";
+    output = "last_mission.xml";
   }
   return output;
 }
@@ -991,7 +959,8 @@ nav_msgs::Path Captain::createPathFromMission(Mission mission)
   return path;
 }
 
-void Captain::callAction(const bool is_trigger, const std::string& action_id, const std::vector<std::string> parameters)
+void Captain::callAction(const bool is_trigger, const std::string& action_id,
+                         const std::vector<std::string> parameters)
 {
   if (is_trigger)
   {
@@ -1054,7 +1023,8 @@ void Captain::computeTimeoutAndDistance(const cola2_msgs::PilotGoal& actionlib_r
   // Extract initial and final xy
   cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
   double final_x, final_y, dummy_z;
-  ned.geodetic2Ned(actionlib_request.final_latitude, actionlib_request.final_longitude, 0.0, final_x, final_y, dummy_z);
+  ned.geodetic2Ned(actionlib_request.final_latitude, actionlib_request.final_longitude, 0.0,
+                   final_x, final_y, dummy_z);
 
   // The "returned" distance is only the distance xy
   distance = std::sqrt(std::pow(final_x - nav_.position.north, 2) + std::pow(final_y - nav_.position.east, 2));
@@ -1072,8 +1042,8 @@ void Captain::computeTimeoutAndDistance(const cola2_msgs::PilotGoal& actionlib_r
     dist_z = std::fabs(actionlib_request.final_depth - nav_.position.depth) + max_dvl_range;
 
   // Compute velocities
-  const double x_vel =
-      std::max(std::min(actionlib_request.surge_velocity, config_.pilot_section_max_surge_velocity), 0.001);
+  const double x_vel = std::max(std::min(actionlib_request.surge_velocity,
+                                         config_.pilot_section_max_surge_velocity), 0.001);
   const double z_vel = std::max(std::min(0.3, config_.controller_max_velocity_z), 0.001);
 
   // Compute timeout
@@ -1181,68 +1151,6 @@ bool Captain::enableMission(cola2_msgs::Mission::Request& req, cola2_msgs::Missi
     return false;
   }
 
-  // Check distance to first waypoint in the mission
-  cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
-  if (mission.size() > 0)
-  {
-    double x, y, dummy_z;
-    ned.geodetic2Ned(mission.getStep(0)->getManeuverPtr()->x(), mission.getStep(0)->getManeuverPtr()->y(), 0.0, x, y,
-                     dummy_z);
-    const double distance_xy = std::sqrt(std::pow(x - nav_.position.north, 2) + std::pow(y - nav_.position.east, 2));
-    if (distance_xy > config_.max_distance_to_waypoint)
-    {
-      res.message = "Problem loading mission. Distance between the the robot and the first waypoint is too large (" +
-                    std::to_string(distance_xy) + " > " + std::to_string(config_.max_distance_to_waypoint) + " meters)";
-      res.success = false;
-      ROS_ERROR_STREAM(res.message);
-      return false;
-    }
-  }
-
-  // Check distance between points in the mission
-  std::vector<std::size_t> waypoints_too_far_list;
-  for (std::size_t i = 0; i + 1 < mission.size(); ++i)
-  {
-    double x1, y1, x2, y2, dummy_z;
-    ned.geodetic2Ned(mission.getStep(i)->getManeuverPtr()->x(), mission.getStep(i)->getManeuverPtr()->y(), 0.0, x1, y1,
-                     dummy_z);
-    ned.geodetic2Ned(mission.getStep(i + 1)->getManeuverPtr()->x(), mission.getStep(i + 1)->getManeuverPtr()->y(), 0.0,
-                     x2, y2, dummy_z);
-    if (std::sqrt(std::pow(x1 - x2, 2) + std::pow(y1 - y2, 2)) > config_.max_distance_to_waypoint)
-    {
-      waypoints_too_far_list.push_back(i);
-    }
-  }
-  if (!waypoints_too_far_list.empty())
-  {
-    res.message = "Problem loading mission. Distance between the following waypoint pairs is to large (>" +
-                  std::to_string(config_.max_distance_to_waypoint) + " meters):";
-    for (const auto& waypoint : waypoints_too_far_list)
-    {
-      res.message += " [" + std::to_string(waypoint) + ", " + std::to_string(waypoint + 1) + "]";
-    }
-    res.success = false;
-    ROS_ERROR_STREAM(res.message);
-    return false;
-  }
-
-  // Publish mission as string
-  try
-  {
-    std_msgs::String mission_str_msg;
-    std::ifstream ifs(mission_path.c_str(), std::ifstream::in);
-    char c;
-    while (ifs >> std::noskipws >> c)
-    {
-      mission_str_msg.data += c;
-    }
-    pub_mission_str_.publish(mission_str_msg);
-  }
-  catch (const std::exception& ex)
-  {
-    ROS_ERROR_STREAM("Error publishing mission as string: " << ex.what());
-  }
-
   // Add it to the loaded missions
   MissionWithState mission_with_state;
   mission_with_state.mission = mission;
@@ -1348,19 +1256,19 @@ void Captain::mission()
         // Display message
         double final_north, final_east, dummy_z;
         cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
-        ned.geodetic2Ned(maneuver_goto->getFinalLatitude(), maneuver_goto->getFinalLongitude(), 0.0, final_north,
-                         final_east, dummy_z);
+        ned.geodetic2Ned(maneuver_goto->getFinalLatitude(), maneuver_goto->getFinalLongitude(), 0.0,
+                         final_north, final_east, dummy_z);
         if (maneuver_goto->getHeaveMode() == MissionGoto::HeaveMode::DEPTH)
         {
-          ROS_INFO_STREAM("Send waypoint request at [" << final_north << ", " << final_east << "] with depth "
-                                                       << actionlib_request.final_depth << ". Timeout is "
-                                                       << actionlib_request.timeout << " seconds");
+          ROS_INFO_STREAM("Send waypoint request at [" << final_north << ", " <<
+                          final_east << "] with depth " << actionlib_request.final_depth <<
+                          ". Timeout is " << actionlib_request.timeout << " seconds");
         }
         else
         {
-          ROS_INFO_STREAM("Send waypoint request at [" << final_north << ", " << final_east << "] with altitude "
-                                                       << actionlib_request.final_altitude << ". Timeout is "
-                                                       << actionlib_request.timeout << " seconds");
+          ROS_INFO_STREAM("Send waypoint request at [" << final_north << ", " <<
+                          final_east << "] with altitude " << actionlib_request.final_altitude <<
+                          ". Timeout is " << actionlib_request.timeout << " seconds");
         }
 
         // Update no altitude reactive behavior
@@ -1445,24 +1353,25 @@ void Captain::mission()
         // Display message
         double initial_north, initial_east, final_north, final_east, dummy_z;
         cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
-        ned.geodetic2Ned(maneuver_sec->getInitialLatitude(), maneuver_sec->getInitialLongitude(), 0.0, initial_north,
-                         initial_east, dummy_z);
-        ned.geodetic2Ned(maneuver_sec->getFinalLatitude(), maneuver_sec->getFinalLongitude(), 0.0, final_north,
-                         final_east, dummy_z);
+        ned.geodetic2Ned(maneuver_sec->getInitialLatitude(), maneuver_sec->getInitialLongitude(), 0.0,
+                         initial_north, initial_east, dummy_z);
+        ned.geodetic2Ned(maneuver_sec->getFinalLatitude(), maneuver_sec->getFinalLongitude(), 0.0,
+                         final_north, final_east, dummy_z);
         if (maneuver_sec->getHeaveMode() == MissionSection::HeaveMode::DEPTH)
         {
           ROS_INFO_STREAM("Send section request from ["
-                          << initial_north << ", " << initial_east << "] to [" << final_north << ", " << final_east
-                          << "] with depth from " << actionlib_request.initial_depth << " to "
-                          << actionlib_request.final_depth << ". Timeout is " << actionlib_request.timeout
-                          << " seconds");
+                          << initial_north << ", " << initial_east << "] to ["
+                          << final_north << ", " << final_east << "] with depth from "
+                          << actionlib_request.initial_depth << " to " << actionlib_request.final_depth
+                          << ". Timeout is " << actionlib_request.timeout << " seconds");
         }
         else
         {
-          ROS_INFO_STREAM("Send section request from [" << initial_north << ", " << initial_east << "] to ["
-                                                        << final_north << ", " << final_east << "] with altitude "
-                                                        << actionlib_request.final_altitude << ". Timeout is "
-                                                        << actionlib_request.timeout << " seconds");
+          ROS_INFO_STREAM("Send section request from ["
+                          << initial_north << ", " << initial_east << "] to ["
+                          << final_north << ", " << final_east << "] with altitude "
+                          << actionlib_request.final_altitude << ". Timeout is "
+                          << actionlib_request.timeout << " seconds");
         }
 
         // Update no altitude reactive behavior
@@ -1554,19 +1463,19 @@ void Captain::mission()
           // Display message
           double final_north, final_east, dummy_z;
           cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
-          ned.geodetic2Ned(maneuver_park->getFinalLatitude(), maneuver_park->getFinalLongitude(), 0.0, final_north,
-                           final_east, dummy_z);
+          ned.geodetic2Ned(maneuver_park->getFinalLatitude(), maneuver_park->getFinalLongitude(), 0.0,
+                           final_north, final_east, dummy_z);
           if (maneuver_park->getHeaveMode() == MissionPark::HeaveMode::DEPTH)
           {
-            ROS_INFO_STREAM("Send park approach request at [" << final_north << ", " << final_east << "] with depth "
-                                                              << actionlib_request.final_depth << ". Timeout is "
-                                                              << actionlib_request.timeout << " seconds");
+            ROS_INFO_STREAM("Send park approach request at [" << final_north << ", " <<
+                            final_east << "] with depth " << actionlib_request.final_depth <<
+                            ". Timeout is " << actionlib_request.timeout << " seconds");
           }
           else
           {
-            ROS_INFO_STREAM("Send park approach request at [" << final_north << ", " << final_east << "] with altitude "
-                                                              << actionlib_request.final_altitude << ". Timeout is "
-                                                              << actionlib_request.timeout << " seconds");
+            ROS_INFO_STREAM("Send park approach request at [" << final_north << ", " <<
+                            final_east << "] with altitude " << actionlib_request.final_altitude <<
+                            ". Timeout is " << actionlib_request.timeout << " seconds");
           }
 
           // Update no altitude reactive behavior
@@ -1651,19 +1560,19 @@ void Captain::mission()
           // Display message
           double final_north, final_east, dummy_z;
           cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
-          ned.geodetic2Ned(maneuver_park->getFinalLatitude(), maneuver_park->getFinalLongitude(), 0.0, final_north,
-                           final_east, dummy_z);
+          ned.geodetic2Ned(maneuver_park->getFinalLatitude(), maneuver_park->getFinalLongitude(), 0.0,
+                           final_north, final_east, dummy_z);
           if (maneuver_park->getHeaveMode() == MissionPark::HeaveMode::DEPTH)
           {
-            ROS_INFO_STREAM("Send park request at [" << final_north << ", " << final_east << "] with depth "
-                                                     << actionlib_request.final_depth << ". Timeout is "
-                                                     << actionlib_request.timeout << " seconds");
+            ROS_INFO_STREAM("Send park request at [" << final_north << ", " <<
+                            final_east << "] with depth " << actionlib_request.final_depth <<
+                            ". Timeout is " << actionlib_request.timeout << " seconds");
           }
           else
           {
-            ROS_INFO_STREAM("Send park request at [" << final_north << ", " << final_east << "] with altitude "
-                                                     << actionlib_request.final_altitude << ". Timeout is "
-                                                     << actionlib_request.timeout << " seconds");
+            ROS_INFO_STREAM("Send park request at [" << final_north << ", " <<
+                            final_east << "] with altitude " << actionlib_request.final_altitude <<
+                            ". Timeout is " << actionlib_request.timeout << " seconds");
           }
 
           // Update no altitude reactive behavior
@@ -1776,8 +1685,8 @@ bool Captain::enableGotoSrv(cola2_msgs::Goto::Request& req, cola2_msgs::Goto::Re
   {
     cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
     double dummy_z;
-    ned.ned2Geodetic(req.final_x, req.final_y, 0.0, actionlib_request.final_latitude, actionlib_request.final_longitude,
-                     dummy_z);
+    ned.ned2Geodetic(req.final_x, req.final_y, 0.0,
+                     actionlib_request.final_latitude, actionlib_request.final_longitude, dummy_z);
   }
   else
   {
@@ -1824,23 +1733,20 @@ bool Captain::enableGotoSrv(cola2_msgs::Goto::Request& req, cola2_msgs::Goto::Re
   // Display message
   double final_north, final_east, dummy_z;
   cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
-  ned.geodetic2Ned(actionlib_request.final_latitude, actionlib_request.final_longitude, 0.0, final_north, final_east,
-                   dummy_z);
+  ned.geodetic2Ned(actionlib_request.final_latitude, actionlib_request.final_longitude, 0.0,
+                   final_north, final_east, dummy_z);
   if (actionlib_request.heave_mode != cola2_msgs::PilotGoal::DEPTH)
   {
-    ROS_INFO_STREAM("Send waypoint request at [" << final_north << ", " << final_east << "] with altitude "
-                                                 << actionlib_request.final_altitude << ". Timeout is "
-                                                 << actionlib_request.timeout << " seconds");
+    ROS_INFO_STREAM("Send waypoint request at [" << final_north << ", " <<
+                    final_east << "] with altitude " << actionlib_request.final_altitude <<
+                    ". Timeout is " << actionlib_request.timeout << " seconds");
   }
   else
   {
-    ROS_INFO_STREAM("Send waypoint request at [" << final_north << ", " << final_east << "] with depth "
-                                                 << actionlib_request.final_depth << ". Timeout is "
-                                                 << actionlib_request.timeout << " seconds");
+    ROS_INFO_STREAM("Send waypoint request at [" << final_north << ", " <<
+                    final_east << "] with depth " << actionlib_request.final_depth <<
+                    ". Timeout is " << actionlib_request.timeout << " seconds");
   }
-
-  // Disable teleoperation pose controllers
-  disableTeleoperationPoseControllers();
 
   // Call actionlib
   is_pilot_actionlib_running_ = true;
@@ -1927,10 +1833,10 @@ bool Captain::enableSectionSrv(cola2_msgs::Section::Request& req, cola2_msgs::Se
   {
     cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
     double dummy_z;
-    ned.ned2Geodetic(req.initial_x, req.initial_y, 0.0, actionlib_request.initial_latitude,
-                     actionlib_request.initial_longitude, dummy_z);
-    ned.ned2Geodetic(req.final_x, req.final_y, 0.0, actionlib_request.final_latitude, actionlib_request.final_longitude,
-                     dummy_z);
+    ned.ned2Geodetic(req.initial_x, req.initial_y, 0.0,
+                     actionlib_request.initial_latitude, actionlib_request.initial_longitude, dummy_z);
+    ned.ned2Geodetic(req.final_x, req.final_y, 0.0,
+                     actionlib_request.final_latitude, actionlib_request.final_longitude, dummy_z);
   }
   else
   {
@@ -1980,23 +1886,20 @@ bool Captain::enableSectionSrv(cola2_msgs::Section::Request& req, cola2_msgs::Se
   // Display message
   double final_north, final_east, dummy_z;
   cola2::utils::NED ned(nav_.origin.latitude, nav_.origin.longitude, 0.0);
-  ned.geodetic2Ned(actionlib_request.final_latitude, actionlib_request.final_longitude, 0.0, final_north, final_east,
-                   dummy_z);
+  ned.geodetic2Ned(actionlib_request.final_latitude, actionlib_request.final_longitude, 0.0,
+                   final_north, final_east, dummy_z);
   if (actionlib_request.heave_mode != cola2_msgs::PilotGoal::DEPTH)
   {
-    ROS_INFO_STREAM("Send section request at [" << final_north << ", " << final_east << "] with altitude "
-                                                << actionlib_request.final_altitude << ". Timeout is "
-                                                << actionlib_request.timeout << " seconds");
+    ROS_INFO_STREAM("Send section request at [" << final_north << ", " <<
+                    final_east << "] with altitude " << actionlib_request.final_altitude <<
+                    ". Timeout is " << actionlib_request.timeout << " seconds");
   }
   else
   {
-    ROS_INFO_STREAM("Send section request at [" << final_north << ", " << final_east << "] with depth "
-                                                << actionlib_request.final_depth << ". Timeout is "
-                                                << actionlib_request.timeout << " seconds");
+    ROS_INFO_STREAM("Send section request at [" << final_north << ", " <<
+                    final_east << "] with depth " << actionlib_request.final_depth <<
+                    ". Timeout is " << actionlib_request.timeout << " seconds");
   }
-
-  // Disable teleoperation pose controllers
-  disableTeleoperationPoseControllers();
 
   // Call actionlib
   is_pilot_actionlib_running_ = true;
@@ -2086,9 +1989,6 @@ bool Captain::enableMissionSrv(cola2_msgs::Mission::Request& req, cola2_msgs::Mi
   // Enable mission
   if (enableMission(req, res))
   {
-    // Disable teleoperation pose controllers
-    disableTeleoperationPoseControllers();
-
     ROS_INFO_STREAM("Mission enabled");
     state_ = CaptainStates::Mission;
     last_running_mission_ = req.mission;
@@ -2118,7 +2018,7 @@ bool Captain::resumeMissionSrv(cola2_msgs::Mission::Request& req, cola2_msgs::Mi
     return true;
   }
 
-  // Check mission name. If empty, use default mission name
+  // Check mission name. If empty, use default last mission name
   if (req.mission.empty())
   {
     req.mission = getDefaultMissionName();
@@ -2142,14 +2042,11 @@ bool Captain::resumeMissionSrv(cola2_msgs::Mission::Request& req, cola2_msgs::Mi
     return true;
   }
 
-  // Disable teleoperation pose controllers
-  disableTeleoperationPoseControllers();
-
   // Set captain state
   state_ = CaptainStates::Mission;
   last_running_mission_ = req.mission;
 
-  res.message = "Resuming mission: " + last_running_mission_;
+  res.message = "Resuming mission";
   res.success = true;
   ROS_INFO_STREAM(res.message);
   mainIteration();
@@ -2195,7 +2092,7 @@ bool Captain::pauseMissionSrv(std_srvs::Trigger::Request&, std_srvs::Trigger::Re
   state_ = CaptainStates::Idle;
   updateNoAltitudeGoesUpIdle();
 
-  res.message = "Mission paused: " + last_running_mission_;
+  res.message = "Mission paused";
   res.success = true;
   ROS_INFO_STREAM(res.message);
   mainIteration();
@@ -2254,7 +2151,7 @@ bool Captain::disableMissionSrv(cola2_msgs::Mission::Request& req, cola2_msgs::M
     {
       executePendingActions(req.mission);
       deleteLoadedMission(req.mission);
-      res.message = "Mission removed from paused missions: " + req.mission;
+      res.message = "Mission " + req.mission + " removed from paused missions";
       ROS_INFO_STREAM(res.message);
     }
     else
@@ -2315,9 +2212,6 @@ bool Captain::enableKeepPositionHolonomicSrv(std_srvs::Trigger::Request&, std_sr
   actionlib_request.timeout = 3600.0;  // Wait value of one hour
   actionlib_request.controller_type = cola2_msgs::PilotGoal::HOLONOMIC_KEEP_POSITION;
 
-  // Disable teleoperation pose controllers
-  disableTeleoperationPoseControllers();
-
   // Call actionlib
   is_pilot_actionlib_running_ = true;
   pilot_actionlib_.sendGoal(actionlib_request);
@@ -2325,9 +2219,8 @@ bool Captain::enableKeepPositionHolonomicSrv(std_srvs::Trigger::Request&, std_sr
 
   res.message = "Holonomic keep position enabled";
   res.success = true;
-  ROS_INFO_STREAM("Start holonomic keep position at [" << nav_.position.north << ", " << nav_.position.east << ", "
-                                                       << nav_.position.depth << "] with orientation "
-                                                       << nav_.orientation.yaw);
+  ROS_INFO_STREAM("Start holonomic keep position at [" << nav_.position.north << ", " << nav_.position.east << ", " <<
+                  nav_.position.depth << "] with orientation " << nav_.orientation.yaw);
   state_ = CaptainStates::KeepPosition;
   last_keep_position_holonomic_ = true;
   updateNoAltitudeGoesUp(false);
@@ -2382,9 +2275,6 @@ bool Captain::enableKeepPositionNonHolonomicSrv(std_srvs::Trigger::Request&, std
   actionlib_request.timeout = 3600.0;  // Wait value of one hour
   actionlib_request.controller_type = cola2_msgs::PilotGoal::ANCHOR;
 
-  // Disable teleoperation pose controllers
-  disableTeleoperationPoseControllers();
-
   // Call actionlib
   is_pilot_actionlib_running_ = true;
   pilot_actionlib_.sendGoal(actionlib_request);
@@ -2392,8 +2282,8 @@ bool Captain::enableKeepPositionNonHolonomicSrv(std_srvs::Trigger::Request&, std
 
   res.message = "Non-holonomic keep position enabled";
   res.success = true;
-  ROS_INFO_STREAM("Start non-holonomic keep position at [" << nav_.position.north << ", " << nav_.position.east << ", "
-                                                           << nav_.position.depth << "]");
+  ROS_INFO_STREAM("Start non-holonomic keep position at [" <<
+                  nav_.position.north << ", " << nav_.position.east << ", " << nav_.position.depth << "]");
   state_ = CaptainStates::KeepPosition;
   last_keep_position_holonomic_ = false;
   updateNoAltitudeGoesUp(false);
@@ -2468,22 +2358,9 @@ bool Captain::enableSafetyKeepPositionSrv(
   actionlib_request.initial_latitude = nav_.global_position.latitude;
   actionlib_request.initial_longitude = nav_.global_position.longitude;
   actionlib_request.initial_depth = nav_.position.depth;
-  if (config_.safety_keep_position_goes_to_ned_origin)
-  {
-    ROS_INFO_STREAM("Start safety keep position (non-holonomic) at [0, 0, " << config_.safety_keep_position_depth
-                                                                            << "]");
-    actionlib_request.final_latitude = nav_.origin.latitude;
-    actionlib_request.final_longitude = nav_.origin.longitude;
-  }
-  else
-  {
-    ROS_INFO_STREAM("Start safety keep position (non-holonomic) at ["
-                    << nav_.position.north << ", " << nav_.position.east << ", " << config_.safety_keep_position_depth
-                    << "]");
-    actionlib_request.final_latitude = actionlib_request.initial_latitude;
-    actionlib_request.final_longitude = actionlib_request.initial_longitude;
-  }
-  actionlib_request.final_depth = config_.safety_keep_position_depth;
+  actionlib_request.final_latitude = actionlib_request.initial_latitude;
+  actionlib_request.final_longitude = actionlib_request.initial_longitude;
+  actionlib_request.final_depth = config_.controlled_surface_depth;
   actionlib_request.final_yaw = 0.0;
   actionlib_request.final_altitude = 0.0;
   actionlib_request.heave_mode = cola2_msgs::PilotGoal::DEPTH;
@@ -2492,9 +2369,6 @@ bool Captain::enableSafetyKeepPositionSrv(
   actionlib_request.timeout = 1e6;  // Effectively waiting forever
   actionlib_request.controller_type = cola2_msgs::PilotGoal::ANCHOR;
 
-  // Disable teleoperation pose controllers
-  disableTeleoperationPoseControllers();
-
   // Call actionlib
   is_pilot_actionlib_running_ = true;
   pilot_actionlib_.sendGoal(actionlib_request);
@@ -2502,6 +2376,9 @@ bool Captain::enableSafetyKeepPositionSrv(
 
   event.getResponse().message = "Safety non-holonomic keep position enabled";
   event.getResponse().success = true;
+  ROS_INFO_STREAM("Start safety keep position (non-holonomic) at [" <<
+                  nav_.position.north << ", " << nav_.position.east << ", " <<
+                  config_.controlled_surface_depth << "]");
   state_ = CaptainStates::SafetyKeepPosition;
   updateNoAltitudeGoesUp(false);
   mainIteration();
@@ -2622,9 +2499,6 @@ bool Captain::enableExternalMissionSrv(
   // Set captain state
   state_ = CaptainStates::ExternalMission;
 
-  // Disable teleoperation pose controllers
-  disableTeleoperationPoseControllers();
-
   res.message = std::to_string(external_mission_feedback_id_);  // The message is used to pass the id
   res.success = true;
   ROS_INFO_STREAM("External mission enabled. Feedback id: " << res.message);
@@ -2659,14 +2533,15 @@ bool Captain::disableExternalMissionSrv(
   // Increment id
   ++external_mission_feedback_id_;
 
-  res.message = "External mission disabled: " + external_mission_caller_name_;
+  res.message = "External mission disabled";
   res.success = true;
   ROS_INFO_STREAM(res.message);
   mainIteration();
   return true;
 }
 
-bool Captain::disableAllAndSetIdleSrv(ros::ServiceEvent<std_srvs::Trigger::Request, std_srvs::Trigger::Response>& event)
+bool Captain::disableAllAndSetIdleSrv(ros::ServiceEvent<std_srvs::Trigger::Request,
+                                      std_srvs::Trigger::Response>& event)
 {
   std_srvs::Trigger::Request req = event.getRequest();
   if (state_ == CaptainStates::Goto)
@@ -2724,7 +2599,7 @@ bool Captain::reloadParamsCallback(std_srvs::Trigger::Request&, std_srvs::Trigge
     // Update no altitude goes up behavior if in idle
     if (state_ == CaptainStates::Idle)
     {
-      updateNoAltitudeGoesUpIdle();
+        updateNoAltitudeGoesUpIdle();
     }
 
     // Call publish params service
@@ -2754,10 +2629,7 @@ bool Captain::getConfig()
   // Load config from param server
   bool ok = true;
   ok &= cola2::ros::getParam("~max_distance_to_waypoint", config_.max_distance_to_waypoint);
-  ok &= cola2::ros::getParam("~safety_keep_position_depth", config_.safety_keep_position_depth);
-  ok &=
-      cola2::ros::getParam("~safety_keep_position_goes_to_ned_origin", config_.safety_keep_position_goes_to_ned_origin);
-  ok &= cola2::ros::getParam("~reset_keep_position_on_navigation_jump", config_.reset_keep_position_on_navigation_jump);
+  ok &= cola2::ros::getParam("~controlled_surface_depth", config_.controlled_surface_depth);
   ok &= cola2::ros::getParam(cola2::ros::getNamespace() + "/pilot/section/max_surge_velocity",
                              config_.pilot_section_max_surge_velocity);
   ok &= cola2::ros::getParam(cola2::ros::getNamespace() + "/controller/max_velocity_z",

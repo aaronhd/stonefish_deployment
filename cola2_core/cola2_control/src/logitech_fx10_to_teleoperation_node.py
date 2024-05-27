@@ -82,19 +82,19 @@ class LogitechFX10(JoystickBase):
 
         # ... enable thrusters service
         rospy.wait_for_service(
-            namespace + 'teleoperation/enable_thrusters', 10)
+            namespace + 'controller/enable_thrusters', 10)
         try:
             self.enable_thrusters = rospy.ServiceProxy(
-                namespace + 'teleoperation/enable_thrusters', Trigger)
+                namespace + 'controller/enable_thrusters', Trigger)
         except rospy.ServiceException as e:
             rospy.logwarn("%s: Service call failed: %s", self.name, e)
 
         # ... disable thrusters service
         rospy.wait_for_service(
-            namespace + 'teleoperation/disable_thrusters', 10)
+            namespace + 'controller/disable_thrusters', 10)
         try:
             self.disable_thrusters = rospy.ServiceProxy(
-                namespace + 'teleoperation/disable_thrusters', Trigger)
+                namespace + 'controller/disable_thrusters', Trigger)
         except rospy.ServiceException as e:
             rospy.logwarn("%s: Service call failed: %s", self.name, e)
 

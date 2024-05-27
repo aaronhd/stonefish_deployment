@@ -66,7 +66,6 @@ add_library(cola2_nav
   src/${PROJECT_NAME}/ekf_base_ros.cpp
   src/${PROJECT_NAME}/transformations.cpp
   # Complete filters
-  src/${PROJECT_NAME}/ekf_position.cpp
   src/${PROJECT_NAME}/ekf_position_velocity.cpp
   src/${PROJECT_NAME}/ekf_surface_2d.cpp
 )
@@ -77,10 +76,6 @@ add_dependencies(cola2_nav ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED
 add_executable(navigator_node src/navigator_node.cpp)
 target_link_libraries(navigator_node ${catkin_LIBRARIES} cola2_nav)
 add_dependencies(navigator_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-add_executable(navigator_position_node src/navigator_position_node.cpp)
-target_link_libraries(navigator_position_node ${catkin_LIBRARIES} cola2_nav)
-add_dependencies(navigator_position_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_executable(navigator_surface_node src/navigator_surface_node.cpp)
 target_link_libraries(navigator_surface_node ${catkin_LIBRARIES} cola2_nav)

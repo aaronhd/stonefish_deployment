@@ -119,7 +119,7 @@ void OnlyThrustersController::iteration(double current_time)
 
     // Disable Pitch control
     std::vector<bool> disable_axis = velocity_req.getDisabledAxis();
-    // disable_axis.at(4) = true;
+    disable_axis.at(4) = true;
     velocity_req.setDisabledAxis(disable_axis);
 
     // Compute pose error
@@ -136,15 +136,9 @@ void OnlyThrustersController::iteration(double current_time)
     }
 
     // Compute PID between pose error and zero
-    // desired_pose.setValues(pose_error);
+    desired_pose.setValues(pose_error);
     std::vector<double> zero(6, 0.0);
-    // std::vector<double> pose_ctrl_tau = pose_controller_.compute(current_time, desired_pose, zero);
-    Request zero_request_with_correct_disable_axis(desired_pose);
-    zero_request_with_correct_disable_axis.setValues(zero);
-    const std::vector<double> negative_pose_error = { -pose_error[0], -pose_error[1], -pose_error[2],
-                                                      -pose_error[3], -pose_error[4], -pose_error[5] };
-    std::vector<double> pose_ctrl_tau =
-        pose_controller_.compute(current_time, zero_request_with_correct_disable_axis, negative_pose_error);
+    std::vector<double> pose_ctrl_tau = pose_controller_.compute(current_time, desired_pose, zero);
 
     // Normalize output to max velocity
     assert(pose_ctrl_tau.size() == max_velocity_.size());

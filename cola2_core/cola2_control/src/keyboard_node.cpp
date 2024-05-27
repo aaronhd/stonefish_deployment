@@ -9,19 +9,17 @@
 #include "sensor_msgs/Joy.h"
 
 #include <termios.h>
-#include <unistd.h>
 
 #include <csignal>
 #include <cstdio>
 #include <cstring>
-#include <vector>
 
 // Flag used to stop the node
 sig_atomic_t volatile keyboard_requested_shutdown = 0;
 
 class Keyboard
 {
-protected:
+private:
   // Node handle
   ros::NodeHandle nh_;
 
@@ -31,16 +29,15 @@ protected:
   // Get char internal method
   int getChar()
   {
+    int ch;
     struct termios oldt, newt;
     tcgetattr(STDIN_FILENO, &oldt);
     std::memcpy(&newt, &oldt, sizeof(struct termios));
     newt.c_lflag &= ~(ICANON | ECHO);
-    newt.c_lflag |= ISIG;
     newt.c_cc[VEOL] = 1;
     newt.c_cc[VEOF] = 2;
-    newt.c_cc[VMIN] = 1;
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    const int ch = getchar();  // This call blocks until a key is pressed
+    ch = getchar();
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     return ch;
   }
@@ -49,7 +46,7 @@ public:
   Keyboard()
   {
     pub_ = nh_.advertise<sensor_msgs::Joy>("joy", 1);
-    ROS_INFO("Initialized");
+    ROS_INFO_STREAM("Initialized");
   }
 
   void readKeyboardHits()
@@ -105,11 +102,9 @@ public:
       std::vector<int> buttons(19, 0);  // 19 buttons
 
       // Find which button is pressed
-      const int key = getChar();
+      int key = getChar();
       if (keyboard_requested_shutdown)
-      {
         break;
-      }
 
       if (key == KEY_SPACE)
       {
@@ -135,11 +130,9 @@ public:
       {
         if (getChar() == KEY_OBRACKET)
         {
-          const int arrow_key = getChar();
+          int arrow_key = getChar();
           if (keyboard_requested_shutdown)
-          {
             break;
-          }
 
           if (arrow_key == KEY_UP)
           {
@@ -202,7 +195,6 @@ public:
       else
       {
         ROS_INFO_STREAM("Key code is " << key << ". Ignoring key");
-        ros::Duration(0.01).sleep();  // Avoid filling the hard drive if getchar returns immediately on error
         continue;
       }
 

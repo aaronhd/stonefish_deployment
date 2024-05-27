@@ -46,7 +46,6 @@ class TestThrusters:
         self.disable_thrusters(TriggerRequest())
 
         data = Setpoints()
-        data.header.frame_id = rospy.get_namespace()[1:] + "safety"
         for p in req.param:
             data.setpoints.append(float(p))
 
@@ -59,7 +58,6 @@ class TestThrusters:
             rate.sleep()
 
         return []
-
 
 if __name__ == '__main__':
     try:

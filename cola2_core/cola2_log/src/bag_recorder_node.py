@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-# Copyright (c) 2023 Iqua Robotics SL - All Rights Reserved
+# Copyright (c) 2020 Iqua Robotics SL - All Rights Reserved
 #
 # This file is subject to the terms and conditions defined in file
 # 'LICENSE.txt', which is part of this source code package.
 
 import rospy
-from cola2_ros.diagnostic_helper import DiagnosticHelper
-from diagnostic_msgs.msg import DiagnosticStatus
 from std_srvs.srv import Trigger
 from std_srvs.srv import TriggerResponse
 import signal
@@ -19,10 +17,6 @@ class LogBag:
 
     def __init__(self):
         """Class constructor."""
-        # Set up diagnostics
-        self.diagnostic = DiagnosticHelper("bag_recorder", rospy.get_name())
-        self.diagnostic.set_enabled(True)
-
         # Create services
         self.start_bag = rospy.Service('~enable_logs', Trigger, self.enable_logs)
         self.stop_bag = rospy.Service('~disable_logs', Trigger, self.disable_logs)
@@ -38,9 +32,6 @@ class LogBag:
         if ns and ns[-1] == '/':
             ns = ns[:-1]
         self.robot_name = ns
-
-        # Start timer
-        rospy.Timer(rospy.Duration(1), self.diagnostics_timer)
 
         rospy.loginfo("Initialized. This node will execute the launch file bag.launch")
 
@@ -103,12 +94,6 @@ class LogBag:
             while len(self.stacks[caller_id]) > 0:
                 print("Disabling bag for id " + caller_id)  # The rosout may not work at this point, so better use print
                 os.killpg(os.getpgid(self.stacks[caller_id].pop().pid), signal.SIGTERM)
-
-    def diagnostics_timer(self, event):
-        """ Callback from the diagnostics timer """
-        self.diagnostic.set_level_and_message(DiagnosticStatus.OK)
-        self.diagnostic.report_valid_data(event.current_real)
-        self.diagnostic.publish(event.current_real)
 
 
 if __name__ == '__main__':

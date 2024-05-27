@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2023 Iqua Robotics SL - All Rights Reserved
+# Copyright (c) 2020 Iqua Robotics SL - All Rights Reserved
 #
 # This file is subject to the terms and conditions defined in file
 # 'LICENSE.txt', which is part of this source code package.
@@ -11,8 +11,6 @@ import roslib
 from std_srvs.srv import Trigger, TriggerResponse
 from cola2_msgs.srv import String, StringResponse
 from cola2_ros import param_loader
-from cola2_ros.diagnostic_helper import DiagnosticHelper
-from diagnostic_msgs.msg import DiagnosticStatus
 
 # Other imports
 import os
@@ -34,11 +32,6 @@ class DefaultParamHandler(object):
         self.update_yamls_srv = rospy.Service(self.name + '/update_params_in_yamls', Trigger, self.update_params_in_yamls)
         # Service to update a parameter (passed as request) from param server to corresponding YAML file
         self.update_param_srv = rospy.Service(self.name + '/update_param_in_yaml', String, self.update_param_in_yaml)
-        # Set up diagnostics
-        self.diagnostic = DiagnosticHelper('default_param_handler', self.name)
-        self.diagnostic.set_enabled(True)
-        # Start timer
-        rospy.Timer(rospy.Duration(1), self.diagnostics_timer)
         rospy.loginfo("Starting default param handler on config path: {}".format(self.config_path))
 
     def update_params_in_yamls(self, req):
@@ -57,7 +50,7 @@ class DefaultParamHandler(object):
         for p in rospy.get_param_names():
             dump_params[self.remove_namespace(p)] = rospy.get_param(p)
         rospy.loginfo("Updating parameters from param server to corresponding YAML files")
-
+        
         r = TriggerResponse()
         try:
             # Iterate through all the yaml files in the config folder
@@ -157,12 +150,6 @@ class DefaultParamHandler(object):
         if text.startswith(ns):
             return text[len(ns):]
         return text
-
-    def diagnostics_timer(self, event):
-        """ Callback from the diagnostics timer."""
-        self.diagnostic.set_level_and_message(DiagnosticStatus.OK)
-        self.diagnostic.report_valid_data(event.current_real)
-        self.diagnostic.publish(event.current_real)
 
     def get_config(self):
         """ Read parameters from ROS param server."""

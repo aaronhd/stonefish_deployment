@@ -73,8 +73,8 @@ void SectionController::compute(const control::State& current_state, const contr
 
   // Along-track distance (los_s) and cross-track error (los_e)
   const double los_s = (current_state.pose.position.north - request.initial_north) * cos_beta +
-                       (current_state.pose.position.east - request.initial_east) * sin_beta;
-  const double los_e = (current_state.pose.position.east - request.initial_east) * cos_beta -
+                       (current_state.pose.position.east  - request.initial_east) * sin_beta;
+  const double los_e = (current_state.pose.position.east  - request.initial_east) * cos_beta -
                        (current_state.pose.position.north - request.initial_north) * sin_beta;
 
   // Compute line-of-sight vector
@@ -104,7 +104,8 @@ void SectionController::compute(const control::State& current_state, const contr
     if (los_delta_sq > 0.0)
       los_delta = std::sqrt(los_delta_sq);
     if (config_.delta > dist_final)
-      los_delta = std::sqrt(std::pow(request.final_north - x_proj, 2) + std::pow(request.final_east - y_proj, 2));
+      los_delta = std::sqrt(std::pow(request.final_north - x_proj, 2) +
+                            std::pow(request.final_east - y_proj, 2));
 
     // Following the section. Use line-of-sight
     los_x = x_proj + los_delta * cos_beta - current_state.pose.position.north;
@@ -124,22 +125,12 @@ void SectionController::compute(const control::State& current_state, const contr
   // Compute desired yaw
   double desired_yaw = std::atan2(los_y, los_x);
 
-  // Stop surge when the robot is close in 2D
-  if (dist_final < 0.8 * request.tolerance_xy)
+  // Check if both waypoints are close
+  if ((dist_waypoints < 0.1) && (dist_final < 0.8 * request.tolerance_xy))
   {
     desired_surge = 0.0;
-  }
-
-  // Stop yaw when the robot is very close in 2D
-  if (dist_final < 0.4 * request.tolerance_xy)
-  {
     desired_yaw = current_state.pose.orientation.yaw;
   }
-
-  // Penalize desired surge according to yaw error
-  const double yaw_angle_error = cola2::utils::wrapAngle(desired_yaw - current_state.pose.orientation.yaw);
-  const double yaw_factor = std::min(std::max(1.0 - (std::fabs(yaw_angle_error) - 0.3) / 1.0, 0.0), 1.0);
-  desired_surge *= yaw_factor;
 
   // Set desired surge
   controller_output.velocity.linear.x = desired_surge;
@@ -180,9 +171,9 @@ void SectionController::compute(const control::State& current_state, const contr
   controller_output.pose.disable_axis.z = false;
 
   // Set success
-  const double dist_heave =
-      (controller_output.pose.altitude_mode ? request.final_altitude - current_state.pose.altitude :
-                                              request.final_depth - current_state.pose.position.depth);
+  const double dist_heave = (controller_output.pose.altitude_mode ?
+                             request.final_altitude - current_state.pose.altitude :
+                             request.final_depth - current_state.pose.position.depth);
   feedback.success = (dist_final < request.tolerance_xy) && (std::fabs(dist_heave) < config_.tolerance_z);
 
   // Fill additional feedback vars

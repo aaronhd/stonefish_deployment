@@ -1,48 +1,5 @@
 # Changelog
 
-## [24.1.4] - 11-03-2024
-
-* `cola2_control`: improved controller.yaml so that thruster setpoints are allowed to reach unity
-
-## [24.1.3] - 04-03-2024
-
-* `cola2_control`: solve problem with test_thrusters node
-* `cola2_nav`: discard usbls that IQUAview sends as invalid
-
-## [24.1.2] - 21-02-2024
-
-* `cola2_log`: fixed bug to handle generic errors during repo processing for version
-
-## [24.1.1] - 20-02-2024
-
-* `cola2_log`: fixed bug to handle repos without origin
-
-## [24.1.0] - 30-01-2024
-
-* `cola2_control`: teleoperation node reimplemented in C++
-* `cola2_control`: disable thrusters now resets emergency ramp
-* `cola2_control`: added automatic open loop teleoperation when navigation fails
-* `cola2_control`: controller now sends zeros when the thrusters are disabled
-* `cola2_nav`: added valid navigation checks
-* `cola2_safety`: comms rule now also checks modem
-* `cola2_log`: log versions of packages in bagfile, added mission report generator
-* `cola2_sim`: solved IMU TF issue in sim_auv_nav_sensors node
-* `cola2_safety`: added min altitude starts at depth parameter
-* `cola2_control`: added parameter to reset keep position on navigation jump
-* `cola2_control`: added parameter to send the robot to NED origin on safety keep position
-* `cola2_control`: solved issue in section controller that causes the vehicle to turn when moving vertically
-* `cola2_control`: captain now publishes mission as latched string on enable
-* `cola2_control`: now pose controller td is used
-* `cola2_control`: last mission is now default mission
-* `cola2_control`: pitch is no longer disabled
-* `cola2_control`: solved PID derivative issue
-* `cola2_control`: better termios settings and rosout in keyboard node
-* `cola2_control`: change param name from `controlled_surface_depth` to `safety_keep_position_depth`
-* `cola2_nav`: added ROS warnings when filter update fails
-* `cola2_nav`: added position navigator
-* `cola2_nav`: declination is not applied anymore (imu should do it)
-* `cola2_comms`: add service `reset_recovery_action` to disable aborts via wifi once on surface
-
 ## [20.10.10] - 08-02-2023
 
 * `cola2_control`: add navigation checks in captain
@@ -154,4 +111,3 @@
 ## [3.1.0] - 25-02-2019
 
 * First release
-

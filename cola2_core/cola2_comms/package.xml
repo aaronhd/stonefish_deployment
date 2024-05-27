@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>cola2_comms</name>
-  <version>24.1.4</version>
+  <version>20.10.10</version>
   <description>Handle acoustic modem communications being acoustic modem driver agnostic</description>
   <maintainer email="software@iquarobotics.com">Iqua Robotics</maintainer>
   <license>Iqua Robotics</license>

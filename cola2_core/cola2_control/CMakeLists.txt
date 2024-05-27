@@ -116,9 +116,9 @@ add_executable(controller_node src/controller_node.cpp)
 target_link_libraries(controller_node ${catkin_LIBRARIES} controllers low_level_controllers ros_control_base only_thrusters_controller_lib)
 add_dependencies(controller_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_executable(teleoperation_node src/teleoperation_node.cpp)
-target_link_libraries(teleoperation_node ${catkin_LIBRARIES} controllers low_level_controllers ros_control_base only_thrusters_controller_lib)
-add_dependencies(teleoperation_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_executable(open_loop_node src/open_loop_node.cpp)
+target_link_libraries(open_loop_node ${catkin_LIBRARIES} controllers low_level_controllers ros_control_base only_thrusters_controller_lib)
+add_dependencies(open_loop_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Mark executable scripts (Python etc.) for installation. In contrast to
 # setup.py, you can choose the destination

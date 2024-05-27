@@ -9,10 +9,6 @@
 #ifndef COLA2_LIB_INCLUDE_COLA2_LIB_COLA2_CONTROL_IAUVROSCONTROLLER_H_
 #define COLA2_LIB_INCLUDE_COLA2_LIB_COLA2_CONTROL_IAUVROSCONTROLLER_H_
 
-#include <cola2_control/low_level_controllers/auv_controller_base.h>
-#include <cola2_control/low_level_controllers/request.h>
-#include <cola2_lib_ros/diagnostic_helper.h>
-#include <cola2_lib_ros/this_node.h>
 #include <cola2_msgs/BodyForceReq.h>
 #include <cola2_msgs/BodyVelocityReq.h>
 #include <cola2_msgs/NavSts.h>
@@ -28,6 +24,11 @@
 #include <cmath>
 #include <string>
 #include <vector>
+
+#include <cola2_control/low_level_controllers/auv_controller_base.h>
+#include <cola2_control/low_level_controllers/request.h>
+#include <cola2_lib_ros/diagnostic_helper.h>
+#include <cola2_lib_ros/this_node.h>
 
 class IAUVROSController
 {
@@ -88,9 +89,6 @@ private:
 
   // AUV controller ptr.
   std::shared_ptr<IAUVController> auv_controller_;
-
-  // Last navigation time in seconds
-  double last_nav_time_;
 
   // Estimated total altitude
   double last_altitude_;
