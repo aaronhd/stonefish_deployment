@@ -1,5 +1,3 @@
-# test
-
 # stonefish_deployment
 
 > This is the unofficial deployment of the Stonefish underwater simulator.
